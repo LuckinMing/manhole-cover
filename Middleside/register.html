@@ -152,6 +152,34 @@
             var password = document.getElementById('password').value;
             var confirmPassword = document.getElementById('confirmPassword').value;
             var rememberMe = document.getElementById('rememberMe').checked;
+            var errorElement = document.getElementById('error');
+
+            // 密码验证逻辑
+            var passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/;
+            if (!username) {
+                errorElement.textContent = '请输入用户名';
+                errorElement.style.display = 'block';
+                return;
+            }
+
+            if (!password) {
+                errorElement.textContent = '请输入密码';
+                errorElement.style.display = 'block';
+                return;
+            }
+
+            if (!confirmPassword) {
+                errorElement.textContent = '请确认密码';
+                errorElement.style.display = 'block';
+                return;
+            }
+
+            if (!passwordRegex.test(password)) {
+                errorElement.textContent = '密码必须至少包含8个字符，包括大写字母、小写字母和数字';
+                errorElement.style.display = 'block';
+                return;
+            }
+
             if (username && password && password === confirmPassword) {
                 // 保存用户信息到 user 文件夹
                 saveUserInfo(username, password);
@@ -163,7 +191,8 @@
                 // 重定向到登录页面
                 window.location.href = 'login.html';
             } else {
-                document.getElementById('error').style.display = 'block';
+                errorElement.textContent = '注册失败，请检查输入信息';
+                errorElement.style.display = 'block';
             }
         }
 
