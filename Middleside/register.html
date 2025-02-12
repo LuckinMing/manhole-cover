@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 河南省井盖回收处理有限公司</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f0f0f0 25%, #4CAF50 100%);
+            background-size: 400% 400%;
+            animation: gradientBackground 15s ease infinite;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+        .register-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 320px;
+            animation: fadeIn 1s ease-in-out;
+        }
+        h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #4CAF50;
+        }
+        input[type="text"], input[type="password"] {
+            width: calc(100% - 24px); /* 调整宽度以考虑内边距 */
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            animation: slideIn 0.5s ease-in-out;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            box-sizing: border-box; /* 确保内边距和边框包含在宽度和高度内 */
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            animation: slideIn 0.7s ease-in-out;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+        .error {
+            color: red;
+            display: none;
+            margin-top: 10px;
+        }
+        .options {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            animation: slideIn 0.9s ease-in-out;
+        }
+        .options > div {
+            display: flex;
+            align-items: center;
+        }
+        .options label {
+            margin-left: 5px;
+        }
+        .remember-me, .show-password {
+            margin-right: 20px; /* 调整间距 */
+        }
+        .remember-me input, .show-password input {
+            margin-right: 5px;
+        }
+        .back-home {
+            animation: slideIn 0.9s ease-in-out;
+            margin: 10px 0;
+        }
+        .back-home {
+            display: block;
+            color: #007BFF;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .back-home:hover {
+            text-decoration: underline;
+            color: #0056b3;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes gradientBackground {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h2>注册</h2>
+        <input type="text" id="username" placeholder="用户名">
+        <input type="password" id="password" placeholder="密码">
+        <input type="password" id="confirmPassword" placeholder="确认密码">
+        <div class="options">
+            <div class="remember-me">
+                <input type="checkbox" id="rememberMe">
+                <label for="rememberMe">记住我</label>
+            </div>
+            <div class="show-password">
+                <input type="checkbox" id="showPassword" onclick="togglePasswordVisibility()">
+                <label for="showPassword">显示密码</label>
+            </div>
+        </div>
+        <button onclick="register()">注册</button>
+        <a href="#" class="back-home" onclick="redirectToHome()">返回主页</a>
+        <p class="error" id="error">注册失败，请检查输入信息</p>
+    </div>
+    <script>
+        function togglePasswordVisibility() {
+            var passwordField = document.getElementById('password');
+            var confirmPasswordField = document.getElementById('confirmPassword');
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                confirmPasswordField.type = 'text';
+            } else {
+                passwordField.type = 'password';
+                confirmPasswordField.type = 'password';
+            }
+        }
+
+        function register() {
+            var username = document.getElementById('username').value;
+            var password = document.getElementById('password').value;
+            var confirmPassword = document.getElementById('confirmPassword').value;
+            var rememberMe = document.getElementById('rememberMe').checked;
+            if (username && password && password === confirmPassword) {
+                // 保存用户信息到 user 文件夹
+                saveUserInfo(username, password);
+                alert('注册成功');
+                if (rememberMe) {
+                    // 处理记住我功能
+                    alert('记住我功能已启用');
+                }
+                // 重定向到登录页面
+                window.location.href = 'login.html';
+            } else {
+                document.getElementById('error').style.display = 'block';
+            }
+        }
+
+        function saveUserInfo(username, password) {
+            var user = {
+                username: username,
+                password: password
+            };
+            var userJson = JSON.stringify(user);
+            var blob = new Blob([userJson], { type: 'application/json' });
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = username + '.json';
+            link.click();
+        }
+
+        function redirectToHome() {
+            window.location.href = '../frontside/public/index.html';
+        }
+    </script>
+</body>
+</html>

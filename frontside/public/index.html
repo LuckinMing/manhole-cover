@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>河南省井盖回收处理有限公司</title>
+    <link rel="icon" href="frontside\public\favicon.ico" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #333;
+        }
+        #root {
+            text-align: center;
+            animation: fadeIn 2s ease-in;
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 0.5em;
+            animation: slideIn 1s ease-out;
+        }
+        p {
+            font-size: 1.2em;
+            animation: slideIn 1.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            animation: slideIn 2s ease-out;
+        }
+        button:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <h1>欢迎来到河南省井盖回收处理有限公司</h1>
+        <p>我们致力于提供最优质的井盖回收和处理服务。</p>
+        <button onclick="redirectToLogin()">了解更多</button>
+    </div>
+    <script>
+        function redirectToLogin() {
+            window.location.href = '../../Middleside/login.html';
+        }
+    </script>
+    <script src=""></script>
+</body>
+</html>
