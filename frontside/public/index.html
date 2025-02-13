@@ -16,6 +16,8 @@
             align-items: center;
             height: 100vh;
             color: #333;
+            background-size: cover;
+            background-position: center; /*BG居中*/
         }
         #root {
             text-align: center;
@@ -69,6 +71,16 @@
         function redirectToLogin() {
             window.location.href = '../../Middleside/login.html';
         }
+
+        // BG API
+        fetch('https://rank.pixiv.shojo.cn/api/random?type=PC&sex=1')
+            .then(response => response.json())
+            .then(data => {
+                document.body.style.backgroundImage = `url(${data.backup_url})`;
+            })
+            .catch(error => {
+                console.error('恭喜主播加载不出来:', error);
+            });
     </script>
     <script src=""></script>
 </body>
