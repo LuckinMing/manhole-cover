@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>注册 - 河南省井盖回收处理有限公司</title>
     <style>
+        @font-face {
+            font-family: 'PingFang-SC';
+            src: url('/fonts/PingFang.ttf') format('truetype');
+        }/*孩子们内置苹方来了*/
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'PingFang-SC', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #f0f0f0 25%, #4CAF50 100%);
             background-size: 400% 400%;
             animation: gradientBackground 15s ease infinite;
@@ -186,7 +190,7 @@
                 alert('注册成功');
                 if (rememberMe) {
                     // 处理记住我功能
-                    alert('记住我功能已启用');
+                    alert('记住我已启用');
                 }
                 // 重定向到登录页面
                 window.location.href = 'login.html';
