@@ -23,8 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - 河南省井盖回收处理有限公司</title>
     <style>
+        @font-face {
+            font-family: 'PingFang-SC';
+            src: url('/fonts/PingFang.ttf') format('truetype');
+        }/*孩子们内置苹方来了*/
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'PingFang-SC', sans-serif;
             background-color: #f0f0f0;
             margin: 0;
             padding: 0;
