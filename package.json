@@ -1,0 +1,22 @@
+{
+  "name": "manhole-cover",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontside",
+    "backend"
+  ],
+  "scripts": {
+    "start": "npm run start --workspace=frontside",
+    "start:backend": "npm run start --workspace=backend",
+    "build": "npm run build --workspace=frontside",
+    "build:backend": "npm run build --workspace=backend",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces"
+  },
+  "devDependencies": {
+    "husky": "^8.0.0",
+    "lint-staged": "^13.0.0",
+    "prettier": "^2.8.0"
+  }
+}

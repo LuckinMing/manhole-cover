@@ -185,8 +185,9 @@
             }
 
             if (username && password && password === confirmPassword) {
-                // 保存用户信息到 user 文件夹
-                saveUserInfo(username, password);
+                // 保存用户信息到本地存储
+                localStorage.setItem('username', username);
+                localStorage.setItem('password', password);
                 alert('注册成功');
                 if (rememberMe) {
                     // 处理记住我功能
@@ -198,19 +199,6 @@
                 errorElement.textContent = '注册失败，请检查输入信息';
                 errorElement.style.display = 'block';
             }
-        }
-
-        function saveUserInfo(username, password) {
-            var user = {
-                username: username,
-                password: password
-            };
-            var userJson = JSON.stringify(user);
-            var blob = new Blob([userJson], { type: 'application/json' });
-            var link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = username + '.json';
-            link.click();
         }
 
         function redirectToHome() {
