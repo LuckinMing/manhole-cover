@@ -13,6 +13,7 @@
         body {
             font-family: 'PingFang-SC', Arial, sans-serif;
             background-color: #f0f0f0;
+			background: url("http://www.dmoe.cc/random.php") center/cover no-repeat;
             margin: 0;
             padding: 0;
             display: flex;
@@ -75,16 +76,6 @@
         function redirectToLogin() {
             window.location.href = '../../Middleside/login.html';
         }
-
-        // BG API
-        fetch('https://rank.pixiv.shojo.cn/api/random?type=PC&sex=1')
-            .then(response => response.json())
-            .then(data => {
-                document.body.style.backgroundImage = `url(${data.backup_url})`;
-            })
-            .catch(error => {
-                console.error('恭喜主播加载不出来:', error);
-            });
     </script>
     <script src=""></script>
 </body>
