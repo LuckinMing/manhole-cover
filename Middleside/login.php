@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <style>
         @font-face {
             font-family: 'PingFang-SC';
-            src: url('/fonts/PingFang.ttf') format('truetype');
+            src: url('../fonts/PingFang.ttf') format('truetype');
         }/*孩子们内置苹方来了*/
         body {
             font-family: 'PingFang-SC', sans-serif;

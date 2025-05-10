@@ -4,16 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>河南省井盖回收处理有限公司</title>
-    <link rel="icon" href="frontside\public\favicon.ico" />
+    <link rel="icon" href="../../frontside/public/favicon.ico"/>
     <style>
+        .top-bar {
+            background-color: #333;
+            color: #ffffff;
+            text-align: center;
+            padding: 15px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 0.7;
+        }
+        .top-bar a {
+            color: #E60026;
+            padding: 0 10px;
+        }
         @font-face {
             font-family: 'PingFang-SC';
-            src: url('/fonts/PingFang.ttf') format('truetype');
+            src: url('../fonts/PingFang.ttf') format('truetype');
         }/*孩子们内置苹方来了*/
         body {
             font-family: 'PingFang-SC', Arial, sans-serif;
             background-color: #f0f0f0;
-			background: url("http://www.dmoe.cc/random.php") center/cover no-repeat;
+            background: url("http://www.dmoe.cc/random.php?type=phone&sex=1") center/cover no-repeat;
             margin: 0;
             padding: 0;
             display: flex;
@@ -27,6 +46,7 @@
         #root {
             text-align: center;
             animation: fadeIn 2s ease-in;
+            margin-top: 50px; 
         }
         h1 {
             font-size: 3em;
@@ -67,6 +87,10 @@
     </style>
 </head>
 <body>
+    <div class="top-bar">
+        <span>Manhole-Cover</span>
+        <a href="../../NetEaseMusic/test.html">网易云解析</a>
+    </div>
     <div id="root">
         <h1>欢迎来到河南省井盖回收处理有限公司</h1>
         <p>我们致力于提供最优质的井盖回收和处理服务。</p>
