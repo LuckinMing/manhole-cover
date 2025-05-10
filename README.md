@@ -17,4 +17,5 @@
 
 [========]
 
-我们的网站:[Go!](http://manholecover.us.kg/)[GO2](http://zly1151.dpdns.org)
+我们的网站:
+[https://www.hnjinggai.com](https://www.hnjinggai.com)
