@@ -21,14 +21,21 @@
             align-items: center;
             opacity: 0.7;
         }
+
+        .top-bar span {
+            font-weight: bold;
+        }
+
         .top-bar a {
             color: #E60026;
             padding: 0 10px;
         }
+
         @font-face {
             font-family: 'PingFang-SC';
             src: url('../fonts/PingFang.ttf') format('truetype');
         }/*孩子们内置苹方来了*/
+
         body {
             font-family: 'PingFang-SC', Arial, sans-serif;
             background-color: #f0f0f0;
@@ -43,28 +50,37 @@
             background-size: cover;
             background-position: center; /*BG居中*/
         }
+
         #root {
             text-align: center;
             animation: fadeIn 2s ease-in;
-            margin-top: 50px; 
+            margin-top: 50px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 2rem;
+            padding: 1rem 2rem;
         }
+
         h1 {
             font-size: 3em;
             margin-bottom: 0.5em;
             animation: slideIn 1s ease-out;
         }
+
         p {
             font-size: 1.2em;
             animation: slideIn 1.5s ease-out;
         }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
         }
+
         @keyframes slideIn {
             from { transform: translateY(100px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
+
         button {
             background-color: #4CAF50;
             color: white;
@@ -80,10 +96,12 @@
             transition: background-color 0.3s ease, transform 0.3s ease;
             animation: slideIn 2s ease-out;
         }
+
         button:hover {
             background-color: #45a049;
             transform: scale(1.05);
         }
+        
     </style>
 </head>
 <body>

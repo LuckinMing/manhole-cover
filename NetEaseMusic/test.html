@@ -7,10 +7,36 @@
     <link href="../NetEaseMusic/css/bootstrap.min.css" rel="stylesheet">
     <link href="../NetEaseMusic/css/APlayer.min.css" rel="stylesheet">
     <style>
+        .top-bar {
+            background-color: #333;
+            color: #ffffff;
+            text-align: center;
+            padding: 15px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 0.7;
+        }
+
+        .top-bar a {
+            color: #66CCFF;
+            padding: 0 10px;
+        }
+
+        .top-bar span {
+            font-weight: bold;
+        }
+
         @font-face {
             font-family: 'PingFang-SC';
             src: url('../fonts/PingFang.ttf') format('truetype');
         }/*孩子们内置苹方来了*/
+        
         body {
             font-family: 'PingFang-SC', Arial, sans-serif;
             background: url("http://www.dmoe.cc/random.php?type=phone&sex=1") center/cover no-repeat;
@@ -24,16 +50,15 @@
 
         .container {
             max-width: 800px;
-            padding: 2rem;
+            padding: 5rem;
         }
 
         .header {
             text-align: center;
             margin-bottom: 2.5rem;
             padding: 2rem;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 2rem;
         }
 
         .header h1 {
@@ -41,10 +66,11 @@
             font-weight: 700;
             font-size: 2.5rem;
             letter-spacing: -0.025em;
+            background: rgba(255, 255, 255, 0.0);
         }
 
         .card-form {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.7);
             border-radius: 1rem;
             padding: 2rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -130,6 +156,10 @@
     </style>
 </head>
 <body>
+    <div class="top-bar">
+        <span>Manhole-Cover</span>
+        <a href="../frontside/public/index.html">BACK</a>
+    </div>
     <div class="container">
         <div class="header">
             <h1>网易云解析</h1>

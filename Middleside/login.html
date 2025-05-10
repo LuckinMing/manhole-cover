@@ -5,10 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - 河南省井盖回收处理有限公司</title>
     <style>
+        .top-bar {
+            background-color: #333;
+            color: #ffffff;
+            text-align: center;
+            padding: 15px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 0.7;
+        }
+
+        .top-bar a {
+            color: #66CCFF;
+            padding: 0 10px;
+        }
+
+        .top-bar span {
+            font-weight: bold;
+        }
+
         @font-face {
             font-family: 'PingFang-SC';
             src: url('../fonts/PingFang.ttf') format('truetype');
         }/*孩子们内置苹方来了*/
+
         body {
             font-family: 'PingFang-SC', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #f0f0f0 25%, #4CAF50 100%);
@@ -22,6 +48,7 @@
             height: 100vh;
             color: #333;
         }
+
         .login-container {
             background-color: rgba(255, 255, 255, 0.9);
             padding: 30px;
@@ -31,11 +58,13 @@
             width: 320px;
             animation: fadeIn 1s ease-in-out;
         }
+
         h2 {
             margin-bottom: 20px;
             font-size: 24px;
             color: #4CAF50;
         }
+
         input[type="text"], input[type="password"] {
             width: calc(100% - 24px); /* 调整宽度以考虑内边距 */
             padding: 12px;
@@ -46,10 +75,12 @@
             transition: border-color 0.3s, box-shadow 0.3s;
             box-sizing: border-box; /* 确保内边距和边框包含在宽度和高度内 */
         }
+
         input[type="text"]:focus, input[type="password"]:focus {
             border-color: #4CAF50;
             box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
         }
+
         button {
             background-color: #4CAF50;
             color: white;
@@ -61,56 +92,69 @@
             animation: slideIn 0.7s ease-in-out;
             transition: background-color 0.3s, transform 0.3s;
         }
+
         button:hover {
             background-color: #45a049;
             transform: scale(1.05);
         }
+
         .error {
             color: red;
             display: none;
             margin-top: 10px;
         }
+
         .options {
             display: flex;
             justify-content: space-between;
             margin: 10px 0;
             animation: slideIn 0.9s ease-in-out;
         }
+
         .options > div {
             display: flex;
             align-items: center;
         }
+
         .options label {
             margin-left: 5px;
         }
+
         .remember-me, .show-password {
             margin-right: 20px; /* 调整间距 */
         }
+
         .remember-me input, .show-password input {
             margin-right: 5px;
         }
+
         .register, .back-home {
             animation: slideIn 0.9s ease-in-out;
             margin: 10px 0;
         }
+
         .register, .back-home {
             display: block;
             color: #007BFF;
             text-decoration: none;
             transition: color 0.3s;
         }
+
         .register:hover, .back-home:hover {
             text-decoration: underline;
             color: #0056b3;
         }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
         }
+
         @keyframes slideIn {
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
+
         @keyframes gradientBackground {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -119,6 +163,10 @@
     </style>
 </head>
 <body>
+    <div class="top-bar">
+        <span>Manhole-Cover</span>
+        <a href="../frontside/public/index.html">BACK</a>
+    </div>
     <div class="login-container">
         <h2>登录</h2>
         <input type="text" id="username" placeholder="用户名">
