@@ -39,8 +39,9 @@
         
         body {
             font-family: 'PingFang-SC', Arial, sans-serif;
-            background: url("http://www.dmoe.cc/random.php?type=phone&sex=1") center/cover no-repeat;
+            background: url("http://www.dmoe.cc/random.php?type=phone&sex=1") center/cover fixed no-repeat;
             min-height: 100vh;
+            position: relative;
         }
 
         :root {
@@ -51,6 +52,8 @@
         .container {
             max-width: 800px;
             padding: 5rem;
+            position: relative;
+            z-index: 1;
         }
 
         .header {
@@ -140,6 +143,32 @@
             margin: 1rem 0;
         }
 
+        .playlist-container {
+            max-height: 60vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            margin: 1rem 0;
+            padding-right: 10px;
+        }
+
+        .playlist-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .playlist-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .playlist-container::-webkit-scrollbar-thumb {
+            background: rgba(52, 152, 219, 0.5);
+            border-radius: 4px;
+        }
+
+        .playlist-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(52, 152, 219, 0.7);
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -166,6 +195,20 @@
             <p class="text-muted">听我想听</p>
         </div>
 
+        <div class="list">
+            <div class="header">
+                <h1>获取歌单</h1>
+                <input type="text" id="playlist_id" class="form-control" placeholder="请输入歌单ID">
+                <div class="d-grid">
+                    <button type="button" class="btn btn-primary" id="get-playlist-btn" style="padding: 0.2rem 0.1rem;">
+                        GET
+                    </button>
+                </div>
+            </div>
+            <div id="playlist-info">
+            </div>
+        </div>
+
         <div class="card-form">
             <form id="query-form">
                 <div class="mb-4">
@@ -179,7 +222,7 @@
                         <option value="standard">标准音质</option>
                         <option value="exhigh">极高音质</option>
                         <option value="lossless">无损音质</option>
-                        <option value="hires">Hi-Res音质</option>
+                        <option value="hires">Hi-Res</option>
                         <option value="sky">沉浸环绕声</option>
                         <option value="jyeffect">高清环绕声</option>
                         <option value="jymaster">超清母带</option>
@@ -236,7 +279,7 @@
                         const timestamp = minutes * 60000 + seconds * 1000;
 
                         let text = line.replace(/\[\d{2}:\d{2}[\.:]?\d*\]/g, '').trim();
-                        text = text.replace(/\s\s+/g, ' '); // Replace multiple spaces with a single space
+                        text = text.replace(/\s\s+/g, ' '); 
 
                         data.push([timestamp, index, text]);
                     }
@@ -309,6 +352,134 @@
                 }
             }
 
+            $('#get-playlist-btn').on('click', function(event) {
+                event.preventDefault();
+
+                const playlistId = $('#playlist_id').val();
+
+                if (!playlistId) {
+                    alert('请输入歌单ID');
+                    return;
+                }
+
+                const apiUrl = `https://apis.netstart.cn/music/playlist/track/all?id=${playlistId}`;
+
+                $.get(apiUrl, function(data) {
+                    console.log('API return:', data);
+                    if (data.code === 200) {
+                        const songs = data.songs || [];
+                        let playlistHtml = `
+                            <div class="card-form mt-3">
+                                <div class="d-flex justify-content-between align-items-center mb-3" 
+                                     style="cursor: pointer;" id="playlist-header">
+                                    <h1 class="mb-0">歌单列表 (${songs.length} 首歌曲)</h1>
+                                    <span class="toggle-icon">↓</span>
+                                </div>
+                                <div class="list-group playlist-container" id="playlist-content" style="display: block;">`;
+
+                        songs.forEach(song => {
+                            playlistHtml += `
+                                <div class="song-item" style="background: rgba(255, 255, 255, 0.5); 
+                                                              margin: 0.5rem 0; 
+                                                              padding: 0.75rem; 
+                                                              border-radius: 0.75rem; 
+                                                              display: flex; 
+                                                              justify-content: space-between; 
+                                                              align-items: center">
+                                    <div>
+                                        <strong>${song.name}</strong>
+                                        <small class="text-muted"> - ${song.ar[0].name}</small>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm play-btn" 
+                                            data-song-id="${song.id}"
+                                            style="border-radius: 0.75rem; padding: 0.5rem 1rem;">
+                                        播放
+                                    </button>
+                                </div>`;
+                        });
+
+                        playlistHtml += `
+                                </div>
+                            </div>`;
+
+                        if (songs.length === 0) {
+                            playlistHtml = '<p>未找到歌曲</p>';
+                        }
+
+                        $('#playlist-info').html(playlistHtml);
+
+                        $('.play-btn').on('click', function() {
+                            const songId = $(this).data('song-id');
+                            const level = $('#level').val();
+                            
+                            // 直接发起请求获取歌曲信息
+                            $.post('https://api.kxzjoker.cn/api/163_music', { 
+                                url: songId, 
+                                level: level, 
+                                type: 'json' 
+                            }, function(data) {
+                                if (data.status === 200) {
+                                    // 更新歌曲信息显示
+                                    $('#song_name').text(data.name);
+                                    $('#song_pic').attr('src', data.pic);
+                                    $('#artist_names').text(data.ar_name);
+                                    $('#song_alname').text(data.al_name);
+                                    $('#song_level').text(data.level);
+                                    $('#song_size').text(data.size);
+                                    $('#song_url').attr('href', data.url);
+                                    
+                                    // 处理歌词
+                                    let processedLyrics = data.tlyric ? 
+                                        lrctran(data.lyric, data.tlyric) : data.lyric;
+                                    $('#lyric').html(processedLyrics.replace(/\n/g, '<br>'));
+
+                                    if (window.ap) {
+                                        window.ap.destroy();
+                                    }
+                                    window.ap = new APlayer({
+                                        container: document.getElementById('aplayer'),
+                                        lrcType: 1,
+                                        fixed: true,
+                                        audio: [{
+                                            name: data.name,
+                                            artist: data.ar_name,
+                                            url: data.url,
+                                            cover: data.pic,
+                                            lrc: processedLyrics
+                                        }]
+                                    });
+
+                                    // 显示歌曲信息卡片
+                                    $('#song-info').removeClass('d-none');
+                                    
+                                    window.ap.play();
+                                } else {
+                                    alert('解析失败：' + data.msg);
+                                }
+                            }, 'json');
+                        });
+
+                        $('#playlist-header').on('click', function() {
+                            const content = $('#playlist-content');
+                            const icon = $(this).find('.toggle-icon');
+                            
+                            if (content.is(':visible')) {
+                                content.slideUp();
+                                icon.text('→');
+                            } else {
+                                content.slideDown();
+                                icon.text('↓');
+                            }
+                        });
+                    } else {
+                        alert('获取歌单失败：' + (data.msg || '未知错误'));
+                    }
+                }, 'json').fail(function(jqXHR, textStatus, errorThrown) {
+                    console.error('请求失败:', textStatus, errorThrown);
+                    alert('请求失败，请检查网络连接');
+                });
+            });
+
             $('#query-form').on('submit', function(event) {
                 event.preventDefault();
 
@@ -327,7 +498,6 @@
                     type:'json' 
                 }, function(data) {
                     if (data.status === 200) {
-                        // 更新DOM元素
                         $('#song_name').text(data.name);
                         $('#song_pic').attr('src', data.pic);
                         $('#artist_names').text(data.ar_name);
@@ -336,7 +506,6 @@
                         $('#song_size').text(data.size);
                         $('#song_url').attr('href', data.url);
                         
-                        // 处理歌词
                         let processedLyrics = data.tlyric ? 
                             lrctran(data.lyric, data.tlyric) : data.lyric;
                         $('#lyric').html(processedLyrics.replace(/\n/g, '<br>'));
