@@ -219,9 +219,9 @@
                 <div class="mb-4">
                     <label for="level" class="form-label fw-bold">音质选择</label>
                     <select id="level" class="form-select">
-                        <option value="standard">标准音质</option>
-                        <option value="exhigh">极高音质</option>
-                        <option value="lossless">无损音质</option>
+                        <option value="standard">128K</option>
+                        <option value="exhigh">320K</option>
+                        <option value="lossless">SQ</option>
                         <option value="hires">Hi-Res</option>
                         <option value="sky">沉浸环绕声</option>
                         <option value="jyeffect">高清环绕声</option>
@@ -352,6 +352,11 @@
                 }
             }
 
+            let currentSongIndex = -1;
+            let playList = [];
+            let isSequentialPlay = false;
+            let isRandomPlay = false;
+
             $('#get-playlist-btn').on('click', function(event) {
                 event.preventDefault();
 
@@ -368,14 +373,24 @@
                     console.log('API return:', data);
                     if (data.code === 200) {
                         const songs = data.songs || [];
+                        playList = songs;
                         let playlistHtml = `
                             <div class="card-form mt-3">
-                                <div class="d-flex justify-content-between align-items-center mb-3" 
-                                     style="cursor: pointer;" id="playlist-header">
-                                    <h1 class="mb-0">歌单列表 (${songs.length} 首歌曲)</h1>
-                                    <span class="toggle-icon">↓</span>
+                                <div class="d-flex justify-content-between align-items-center mb-3" id="playlist-header">
+                                    <div class="d-flex align-items-center">
+                                        <h1 class="mb-0 me-3">歌单列表 (${songs.length} 首歌曲)</h1>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary" id="sequential-play">
+                                                顺序播放
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-primary" id="random-play">
+                                                随机播放
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <span class="toggle-icon" style="cursor: pointer;">↓</span>
                                 </div>
-                                <div class="list-group playlist-container" id="playlist-content" style="display: block;">`;
+                                <div class="playlist-container" id="playlist-content">`;
 
                         songs.forEach(song => {
                             playlistHtml += `
@@ -408,18 +423,44 @@
 
                         $('#playlist-info').html(playlistHtml);
 
-                        $('.play-btn').on('click', function() {
-                            const songId = $(this).data('song-id');
-                            const level = $('#level').val();
+                        function initPlayer(audio) {
+                            if (window.ap) {
+                                window.ap.destroy();
+                            }
                             
-                            // 直接发起请求获取歌曲信息
+                            window.ap = new APlayer({
+                                container: document.getElementById('aplayer'),
+                                lrcType: 1,
+                                fixed: true,
+                                audio: [audio]
+                            });
+
+                            window.ap.on('ended', function() {
+                                console.log('歌曲播放结束');
+                                if (isSequentialPlay) {
+                                    console.log('执行顺序播放');
+                                    if (currentSongIndex < playList.length - 1) {
+                                        currentSongIndex++;
+                                        playSongById(playList[currentSongIndex].id);
+                                    }
+                                } else if (isRandomPlay) {
+                                    console.log('执行随机播放');
+                                    const randomIndex = Math.floor(Math.random() * playList.length);
+                                    currentSongIndex = randomIndex;
+                                    playSongById(playList[randomIndex].id);
+                                }
+                            });
+                        }
+
+                        // 播放指定歌曲
+                        function playSongById(songId) {
+                            const level = $('#level').val();
                             $.post('https://api.kxzjoker.cn/api/163_music', { 
                                 url: songId, 
                                 level: level, 
                                 type: 'json' 
                             }, function(data) {
                                 if (data.status === 200) {
-                                    // 更新歌曲信息显示
                                     $('#song_name').text(data.name);
                                     $('#song_pic').attr('src', data.pic);
                                     $('#artist_names').text(data.ar_name);
@@ -428,47 +469,74 @@
                                     $('#song_size').text(data.size);
                                     $('#song_url').attr('href', data.url);
                                     
-                                    // 处理歌词
                                     let processedLyrics = data.tlyric ? 
                                         lrctran(data.lyric, data.tlyric) : data.lyric;
                                     $('#lyric').html(processedLyrics.replace(/\n/g, '<br>'));
 
-                                    if (window.ap) {
-                                        window.ap.destroy();
-                                    }
-                                    window.ap = new APlayer({
-                                        container: document.getElementById('aplayer'),
-                                        lrcType: 1,
-                                        fixed: true,
-                                        audio: [{
-                                            name: data.name,
-                                            artist: data.ar_name,
-                                            url: data.url,
-                                            cover: data.pic,
-                                            lrc: processedLyrics
-                                        }]
+                                    // 初始化播放器
+                                    initPlayer({
+                                        name: data.name,
+                                        artist: data.ar_name,
+                                        url: data.url,
+                                        cover: data.pic,
+                                        lrc: processedLyrics
                                     });
 
-                                    // 显示歌曲信息卡片
                                     $('#song-info').removeClass('d-none');
-                                    
                                     window.ap.play();
                                 } else {
                                     alert('解析失败：' + data.msg);
                                 }
                             }, 'json');
+                        }
+
+                        function playNextSong() {
+                            if (currentSongIndex < playList.length - 1) {
+                                currentSongIndex++;
+                                playSongById(playList[currentSongIndex].id);
+                            }
+                        }
+
+                        function playRandomSong() {
+                            const randomIndex = Math.floor(Math.random() * playList.length);
+                            currentSongIndex = randomIndex;
+                            playSongById(playList[randomIndex].id);
+                        }
+
+                        $('.play-btn').on('click', function() {
+                            const songId = $(this).data('song-id');
+                            currentSongIndex = playList.findIndex(song => song.id === parseInt(songId));
+                            playSongById(songId);
                         });
 
-                        $('#playlist-header').on('click', function() {
-                            const content = $('#playlist-content');
-                            const icon = $(this).find('.toggle-icon');
-                            
-                            if (content.is(':visible')) {
-                                content.slideUp();
-                                icon.text('→');
-                            } else {
-                                content.slideDown();
-                                icon.text('↓');
+                        $('#sequential-play').on('click', function() {
+                            isSequentialPlay = !isSequentialPlay;
+                            isRandomPlay = false;
+                            $(this).toggleClass('btn-outline-primary btn-primary');
+                            $('#random-play').removeClass('btn-primary').addClass('btn-outline-primary');
+                            console.log('顺序播放模式:', isSequentialPlay);
+                        });
+
+                        $('#random-play').on('click', function() {
+                            isRandomPlay = !isRandomPlay;
+                            isSequentialPlay = false;
+                            $(this).toggleClass('btn-outline-primary btn-primary');
+                            $('#sequential-play').removeClass('btn-primary').addClass('btn-outline-primary');
+                            console.log('随机播放模式:', isRandomPlay);
+                        });
+
+                        $('#playlist-header').on('click', function(e) {
+                            if ($(e.target).closest('.btn-group').length === 0) {
+                                const content = $('#playlist-content');
+                                const icon = $(this).find('.toggle-icon');
+                                
+                                if (content.is(':visible')) {
+                                    content.slideUp();
+                                    icon.text('→');
+                                } else {
+                                    content.slideDown();
+                                    icon.text('↓');
+                                }
                             }
                         });
                     } else {
