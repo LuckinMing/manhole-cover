@@ -6,6 +6,8 @@
     <title>网易云无损解析</title>
     <link href="../NetEaseMusic/css/bootstrap.min.css" rel="stylesheet">
     <link href="../NetEaseMusic/css/APlayer.min.css" rel="stylesheet">
+    <script src="../NetEaseMusic/js/browser-id3-writer.min.js"></script>
+    <script src="../NetEaseMusic/js/jsmediatags.min.js"></script>
     <style>
         .top-bar {
             background-color: #333;
@@ -352,6 +354,79 @@
                 }
             }
 
+            async function handleMp3Download(blob, name, artist, cover) {
+                const reader = new FileReader();
+                return new Promise((resolve, reject) => {
+                    reader.onload = function() {
+                        try {
+                            const writer = new ID3Writer(reader.result);
+                            writer.setFrame('TIT2', name)
+                                 .setFrame('TPE1', [artist]);
+
+                            getImageBlob(cover)
+                                .then(imageData => {
+                                    writer.setFrame('APIC', {
+                                        type: 3,
+                                        data: imageData,
+                                        description: 'cover',
+                                        mimeType: 'image/jpeg'
+                                    });
+
+                                    writer.addTag();
+                                    const taggedBlob = writer.getBlob();
+                                    const downloadUrl = URL.createObjectURL(taggedBlob);
+                                    
+                                    const a = document.createElement('a');
+                                    a.href = downloadUrl;
+                                    a.download = `${name} - ${artist}.mp3`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    URL.revokeObjectURL(downloadUrl);
+                                    resolve();
+                                })
+                                .catch(error => {
+                                    console.error('添加封面失败:', error);
+                                    handleDirectDownload(blob, name, artist, false);
+                                    resolve();
+                                });
+                        } catch (error) {
+                            console.error('MP3处理失败:', error);
+                            handleDirectDownload(blob, name, artist, false);
+                            resolve();
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(blob);
+                });
+            }
+
+            async function handleFlacDownload(blob, name, artist) {
+                const reader = new FileReader();
+                return new Promise((resolve, reject) => {
+                    reader.onload = function() {
+                        try {
+                            // 直接下载原始文件，保持 FLAC 格式完整性
+                            const downloadUrl = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = downloadUrl;
+                            a.download = `${name} - ${artist}.flac`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(downloadUrl);
+                            resolve();
+                        } catch (error) {
+                            console.error('FLAC处理失败:', error);
+                            handleDirectDownload(blob, name, artist, true);
+                            resolve();
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(blob);
+                });
+            }
+
             let currentSongIndex = -1;
             let playList = [];
             let isSequentialPlay = false;
@@ -380,15 +455,17 @@
                                     <div class="d-flex align-items-center">
                                         <h1 class="mb-0 me-3">歌单列表 (${songs.length} 首歌曲)</h1>
                                         <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-primary" id="sequential-play">
-                                                顺序播放
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-primary" id="random-play">
-                                                随机播放
-                                            </button>
+                                            <button class="btn btn-sm btn-outline-primary" id="sequential-play">顺序播放</button>
+                                            <button class="btn btn-sm btn-outline-primary" id="random-play">随机播放</button>
+                                            <button class="btn btn-sm btn-outline-success" id="batch-parse">批量解析</button>
                                         </div>
                                     </div>
                                     <span class="toggle-icon" style="cursor: pointer;">↓</span>
+                                </div>
+                                <div class="mb-2">
+                                    <label>
+                                        <input type="checkbox" id="select-all-songs"> 全选
+                                    </label>
                                 </div>
                                 <div class="playlist-container" id="playlist-content">`;
 
@@ -401,9 +478,12 @@
                                                               display: flex; 
                                                               justify-content: space-between; 
                                                               align-items: center">
-                                    <div>
-                                        <strong>${song.name}</strong>
-                                        <small class="text-muted"> - ${song.ar[0].name}</small>
+                                    <div class="d-flex align-items-center">
+                                        <input type="checkbox" class="song-checkbox me-2" data-song-id="${song.id}">
+                                        <div>
+                                            <strong>${song.name}</strong>
+                                            <small class="text-muted"> - ${song.ar[0].name}</small>
+                                        </div>
                                     </div>
                                     <button class="btn btn-primary btn-sm play-btn" 
                                             data-song-id="${song.id}"
@@ -452,7 +532,6 @@
                             });
                         }
 
-                        // 播放指定歌曲
                         function playSongById(songId) {
                             const level = $('#level').val();
                             $.post('https://api.kxzjoker.cn/api/163_music', { 
@@ -473,7 +552,6 @@
                                         lrctran(data.lyric, data.tlyric) : data.lyric;
                                     $('#lyric').html(processedLyrics.replace(/\n/g, '<br>'));
 
-                                    // 初始化播放器
                                     initPlayer({
                                         name: data.name,
                                         artist: data.ar_name,
@@ -528,6 +606,160 @@
                         $('#playlist-header').on('click', function(e) {
                             if ($(e.target).closest('.btn-group').length === 0) {
                                 const content = $('#playlist-content');
+                                const icon = $(this).find('.toggle-icon');
+                                
+                                if (content.is(':visible')) {
+                                    content.slideUp();
+                                    icon.text('→');
+                                } else {
+                                    content.slideDown();
+                                    icon.text('↓');
+                                }
+                            }
+                        });
+
+                        $('#batch-parse').on('click', async function() {
+                            const checkedSongs = $('.song-checkbox:checked');
+                            if (checkedSongs.length === 0) {
+                                alert('请先选择要解析的歌曲');
+                                return;
+                            }
+
+                            const level = $('#level').val();
+                            const parseResults = [];
+                            const isHighQuality = ['lossless', 'hires', 'sky', 'jyeffect', 'jymaster'].includes(level);
+
+                            let resultHtml = `
+                                <div class="card-form mt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-3" id="parse-header" style="cursor: pointer;">
+                                        <div class="d-flex align-items-center">
+                                            <h1 class="mb-0 me-3">解析结果</h1>
+                                            <div class="btn-group">
+                                                <button class="btn btn-primary btn-sm" id="batch-download-all">批量下载全部</button>
+                                            </div>
+                                        </div>
+                                        <span class="toggle-icon">↓</span>
+                                    </div>
+                                    <div class="playlist-container" id="parse-results" style="display: block;"></div>
+                                </div>`;
+                            $('#playlist-info').append(resultHtml);
+
+                            $('#parse-header').on('click', function(e) {
+                                if ($(e.target).closest('.btn-group').length === 0) {
+                                    const content = $('#parse-results');
+                                    const icon = $(this).find('.toggle-icon');
+                                    
+                                    if (content.is(':visible')) {
+                                        content.slideUp();
+                                        icon.text('→');
+                                    } else {
+                                        content.slideDown();
+                                        icon.text('↓');
+                                    }
+                                }
+                            });
+
+                            for (let i = 0; i < checkedSongs.length; i++) {
+                                const songId = $(checkedSongs[i]).data('song-id');
+                                try {
+                                    const response = await $.post('https://api.kxzjoker.cn/api/163_music', {
+                                        url: songId,
+                                        level: level,
+                                        type: 'json'
+                                    });
+                                    
+                                    if (response.status === 200) {
+                                        parseResults.push(response);
+                                        const resultItemHtml = `
+                                            <div class="song-item" style="background: rgba(255, 255, 255, 0.5); 
+                                                                          margin: 0.5rem 0; 
+                                                                          padding: 0.75rem; 
+                                                                          border-radius: 0.75rem; 
+                                                                          display: flex; 
+                                                                          justify-content: space-between; 
+                                                                          align-items: center">
+                                                <div>
+                                                    <strong>${response.name}</strong>
+                                                    <small class="text-muted"> - ${response.ar_name} (${response.level})</small>
+                                                </div>
+                                                <div class="btn-group">
+                                                    <a href="${response.url}" 
+                                                       class="btn btn-primary btn-sm parse-download-btn" 
+                                                       data-name="${response.name}"
+                                                       data-artist="${response.ar_name}"
+                                                       data-cover="${response.pic}"
+                                                       data-high-quality="${isHighQuality}"
+                                                       style="border-radius: 0.75rem; padding: 0.5rem 1rem;">
+                                                        下载
+                                                    </a>
+                                                </div>
+                                            </div>`;
+                                        $('#parse-results').append(resultItemHtml);
+                                    }
+                                } catch (error) {
+                                    console.error(`解析歌曲 ${songId} 失败:`, error);
+                                    $('#parse-results').append(`
+                                        <div class="alert alert-danger">
+                                            解析失败: ${songId}
+                                        </div>`);
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                            }
+
+                            $('#batch-download-all').on('click', async function() {
+                                const downloadButtons = $('.parse-download-btn');
+                                for (let i = 0; i < downloadButtons.length; i++) {
+                                    const button = downloadButtons[i];
+                                    const url = $(button).attr('href');
+                                    const name = $(button).data('name');
+                                    const artist = $(button).data('artist');
+                                    const cover = $(button).data('cover');
+                                    const isHighQuality = $(button).data('high-quality') === true;
+
+                                    try {
+                                        const blob = await fetch(url).then(res => res.blob());
+                                        if (isHighQuality) {
+                                            await handleFlacDownload(blob, name, artist);
+                                        } else {
+                                            await handleMp3Download(blob, name, artist, cover);
+                                        }
+                                        await new Promise(resolve => setTimeout(resolve, 1000));
+                                    } catch (error) {
+                                        console.error(`下载 ${name} 失败:`, error);
+                                        handleDirectDownload(blob, name, artist, isHighQuality);
+                                    }
+                                }
+                            });
+
+                            $('.parse-download-btn').on('click', async function(e) {
+                                e.preventDefault();
+                                const url = $(this).attr('href');
+                                const name = $(this).data('name');
+                                const artist = $(this).data('artist');
+                                const cover = $(this).data('cover');
+                                const isHighQuality = $(this).data('high-quality') === true;
+
+                                try {
+                                    const blob = await fetch(url).then(res => res.blob());
+                                    if (isHighQuality) {
+                                        await handleFlacDownload(blob, name, artist);
+                                    } else {
+                                        await handleMp3Download(blob, name, artist, cover);
+                                    }
+                                } catch (error) {
+                                    console.error('下载失败:', error);
+                                    handleDirectDownload(blob, name, artist, isHighQuality);
+                                }
+                            });
+                        });
+
+                        $('#select-all-songs').on('change', function() {
+                            $('.song-checkbox').prop('checked', $(this).is(':checked'));
+                        });
+
+                        $('#parse-header').on('click', function(e) {
+                            if ($(e.target).closest('.btn-group').length === 0) {
+                                const content = $('#parse-results');
                                 const icon = $(this).find('.toggle-icon');
                                 
                                 if (content.is(':visible')) {
@@ -598,6 +830,86 @@
                     }
                 }, 'json');
             });
+
+            function getImageBlob(imageUrl) {
+                return fetch(imageUrl)
+                    .then(response => response.arrayBuffer())  
+                    .then(buffer => {
+                        return new Uint8Array(buffer);
+                    });
+            }
+
+            $('#song_url').on('click', function(e) {
+                e.preventDefault();
+                const url = $(this).attr('href');
+                const name = $('#song_name').text();
+                const artist = $('#artist_names').text();
+                const cover = $('#song_pic').attr('src');
+                const level = $('#level').val();
+                const isHighQuality = ['lossless', 'hires', 'sky', 'jyeffect', 'jymaster'].includes(level);
+
+                fetch(url)
+                    .then(response => response.blob())
+                    .then(blob => {
+                        if (isHighQuality) {
+                            // FLAC 文件直接下载
+                            const downloadUrl = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = downloadUrl;
+                            a.download = `${name} - ${artist}.flac`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(downloadUrl);
+                        } else {
+                            const reader = new FileReader();
+                            reader.onload = function() {
+                                const writer = new ID3Writer(reader.result);
+                                writer.setFrame('TIT2', name)
+                                     .setFrame('TPE1', [artist]);
+
+                                getImageBlob(cover)
+                                    .then(imageData => {
+                                        try {
+                                            writer.setFrame('APIC', {
+                                                type: 3,
+                                                data: imageData,
+                                                description: 'cover',
+                                                mimeType: 'image/jpeg'
+                                            });
+
+                                            writer.addTag();
+                                            const taggedBlob = writer.getBlob();
+                                            const downloadUrl = URL.createObjectURL(taggedBlob);
+                                            
+                                            const a = document.createElement('a');
+                                            a.href = downloadUrl;
+                                            a.download = `${name} - ${artist}.mp3`;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            URL.revokeObjectURL(downloadUrl);
+                                        } catch (error) {
+                                            console.error('添加标签失败:', error);
+                                            handleDirectDownload(blob, name, artist, isHighQuality);
+                                        }
+                                    });
+                            };
+                            reader.readAsArrayBuffer(blob);
+                        }
+                    });
+            });
+
+            function handleDirectDownload(blob, name, artist, isHighQuality) {
+                const downloadUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `${name} - ${artist}.${isHighQuality ? 'flac' : 'mp3'}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(downloadUrl);
+            }
         });
     </script>
 
