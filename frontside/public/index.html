@@ -7,10 +7,9 @@
     <link rel="icon" href="../../frontside/public/favicon.ico"/>
     <style>
         .top-bar {
-            background-color: #333;
+            background-color: rgba(51, 51, 51, 0.8);
             color: #ffffff;
-            text-align: center;
-            padding: 15px 0;
+            padding: 15px 20px;
             position: fixed;
             top: 0;
             left: 0;
@@ -19,16 +18,54 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            opacity: 0.7;
+            box-sizing: border-box;
+        }
+
+        .top-bar .nav-links {
+            display: flex;
+            gap: 3px;
+            margin-left: auto;
         }
 
         .top-bar span {
             font-weight: bold;
+            font-size: 1.2em;
         }
 
         .top-bar a {
+            text-decoration: none;
+            padding: 5px 15px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .top-bar a[href*="NetEaseMusic"] {
             color: #E60026;
-            padding: 0 10px;
+        }
+
+        .top-bar a[href*="NetEaseMusic"]:hover {
+            background: rgba(230, 0, 38, 0.2);
+        }
+
+        .top-bar a[href*="EzWE"] {
+            color: blue;
+        }
+
+        .top-bar a[href*="EzWE"]:hover {
+            background: rgba(0, 0, 255, 0.2);
+        }
+
+        .top-bar b {
+            color: blue;
+            text-decoration: none;
+            padding: 5px 15px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .top-bar b:hover {
+            background: rgba(0, 0, 255, 0.2);
         }
 
         @font-face {
@@ -107,7 +144,10 @@
 <body>
     <div class="top-bar">
         <span>Manhole-Cover</span>
-        <a href="../../NetEaseMusic/test.html">网易云解析</a>
+        <div class="nav-links">
+            <a href="../../NetEaseMusic/test.html">网易云解析</a>
+            <a href="../../EzWE/Ez-WORD-EXCEL.html">EzWE</a>
+        </div>
     </div>
     <div id="root">
         <h1>欢迎来到河南省井盖回收处理有限公司</h1>

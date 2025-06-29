@@ -1,0 +1,54 @@
+@font-face {
+    font-family: 'PingFang-SC';
+    src: url('../fonts/PingFang.ttf') format('truetype');
+}
+
+body {
+    font-family: 'PingFang-SC', sans-serif;
+    margin: 0;
+    padding: 60px 20px 20px;
+    min-height: 100vh;
+    background: url("http://www.dmoe.cc/random.php?type=phone&sex=1") center/cover fixed no-repeat;
+}
+
+.top-bar {
+    background-color: rgba(51, 51, 51, 0.8);
+    color: #ffffff;
+    padding: 15px 20px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.top-bar span {
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.top-bar a {
+    color: #66CCFF;
+    text-decoration: none;
+    padding: 5px 15px;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+.top-bar a:hover {
+    background: rgba(102, 204, 255, 0.2);
+}
+
+#poweredByLazyChara {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    margin: 20px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}

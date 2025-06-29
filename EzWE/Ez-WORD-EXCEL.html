@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../EzWE/icon.ico"/>
+    <script src="../EzWE/JS/mammoth.browser.min.js"></script>
+    <script src="../EzWE/JS/xlsx.full.min.js"></script>
+    <title>Ez-WORD-Excel</title>
+    <style>
+        @font-face {
+            font-family: 'PingFang-SC';
+            src: url('../fonts/PingFang.ttf') format('truetype');
+        }
+
+        body {
+            font-family: 'PingFang-SC', sans-serif;
+            margin: 0;
+            padding: 60px 20px 20px;
+            min-height: 100vh;
+            background: url("http://www.dmoe.cc/random.php?type=phone&sex=1") center/cover fixed no-repeat;
+        }
+
+        .top-bar {
+            background-color: rgba(51, 51, 51, 0.8);
+            color: #ffffff;
+            padding: 15px 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .top-bar span {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .top-bar a {
+            color: #66CCFF;
+            text-decoration: none;
+            padding: 5px 15px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .top-bar a:hover {
+            background: rgba(102, 204, 255, 0.2);
+        }
+
+        .card-form {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 800px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        input[type="file"] {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid #66CCFF;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        input[type="submit"] {
+            background: #66CCFF;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        input[type="submit"]:hover {
+            background: #5AB1EC;
+            transform: translateY(-2px);
+        }
+
+        #documentContent {
+            background: rgba(255, 255, 255, 0.9);
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 20px auto;
+        }
+
+        #poweredByLazyChara {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            margin: 20px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .text-tips {
+        color: #6c757d;
+        text-align: center;
+        margin-top: -15px;
+        margin-bottom: 15px;
+        font-size: 0.9em;
+    }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 80px 10px 20px;
+            }
+
+            .card-form {
+                margin: 10px;
+            }
+
+            input[type="file"] {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <span>Manhole-Cover</span>
+        <a href="../frontside/public/index.html">BACK</a>
+    </div>
+
+    <div class="card-form">
+        <h1>选择Word或Excel文件</h1>
+        <p class="text-tips">技术原因，暂不支持doc文档查看</p>
+        <form action="#" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".docx, .xlsx, .doc, .xls">
+            <input type="submit" value="重开">
+        </form>
+    </div>
+
+    <div class="card-form">
+        <h2>已读取内容：</h2>
+        <div id="documentContent"></div>
+    </div>
+
+    <div id="poweredByLazyChara">Powered By LazyChara</div>
+
+    <script>
+        document.querySelector('input[type="file"]').addEventListener('change', function() {
+            const fileInput = document.querySelector('input[type="file"]');
+            const documentContent = document.getElementById('documentContent');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const fileName = file.name;
+                const reader = new FileReader();
+
+                if (fileName.endsWith('.doc')) {
+                    documentContent.innerHTML = `
+                        <div class="alert alert-info">
+                            <p>检测到旧版 Word 文档(.doc)，建议先将文档另存为 .docx 格式后再上传</p>
+                        </div>`;
+                    return;
+
+                } else if (fileName.endsWith('.docx')) {
+                    reader.onload = function(event) {
+                        const arrayBuffer = event.target.result;
+                        mammoth.convertToHtml({arrayBuffer: arrayBuffer})
+                            .then(result => {
+                                documentContent.innerHTML = result.value;
+                            })
+                    };
+                } else if (fileName.endsWith('.xlsx')) {
+                    reader.onload = function(event) {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const sheetName = workbook.SheetNames[0];
+                        const sheet = workbook.Sheets[sheetName];
+                        const html = XLSX.utils.sheet_to_html(sheet);
+                        documentContent.innerHTML = html;
+                    };
+
+                } else if (fileName.endsWith('.xls')) {
+                    reader.onload = function(event) {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const sheetName = workbook.SheetNames[0];
+                        const sheet = workbook.Sheets[sheetName];
+                        const html = XLSX.utils.sheet_to_html(sheet);
+                        documentContent.innerHTML = html;
+                    };
+
+                } else {
+                    documentContent.innerHTML = '<p>未知错误,跟我没关系</p>';
+                    return;
+                }
+
+                reader.readAsArrayBuffer(file);
+            } else {
+                documentContent.innerHTML = '';
+            }
+        });
+    </script>
+
+</body>
+</html>

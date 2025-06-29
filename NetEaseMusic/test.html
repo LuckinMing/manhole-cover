@@ -3,37 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../NetEaseMusic/icon.ico"/>
     <title>网易云无损解析</title>
+    <link rel="stylesheet" href="../css/tbbg.css">
     <link href="../NetEaseMusic/css/bootstrap.min.css" rel="stylesheet">
     <link href="../NetEaseMusic/css/APlayer.min.css" rel="stylesheet">
     <script src="../NetEaseMusic/js/browser-id3-writer.min.js"></script>
     <script src="../NetEaseMusic/js/jsmediatags.min.js"></script>
     <style>
-        .top-bar {
-            background-color: #333;
-            color: #ffffff;
-            text-align: center;
-            padding: 15px 0;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            opacity: 0.7;
-        }
-
-        .top-bar a {
-            color: #66CCFF;
-            padding: 0 10px;
-        }
-
-        .top-bar span {
-            font-weight: bold;
-        }
-
         @font-face {
             font-family: 'PingFang-SC';
             src: url('../fonts/PingFang.ttf') format('truetype');
@@ -196,6 +173,8 @@
             <h1>网易云解析</h1>
             <p class="text-muted">听我想听</p>
         </div>
+        
+        <div id="poweredByLazyChara">Powered By LazyChara</div>
 
         <div class="list">
             <div class="header">
@@ -406,7 +385,6 @@
                 return new Promise((resolve, reject) => {
                     reader.onload = function() {
                         try {
-                            // 直接下载原始文件，保持 FLAC 格式完整性
                             const downloadUrl = URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = downloadUrl;
@@ -442,6 +420,8 @@
                     return;
                 }
 
+                $('#playlist-info').empty();
+                
                 const apiUrl = `https://apis.netstart.cn/music/playlist/track/all?id=${playlistId}`;
 
                 $.get(apiUrl, function(data) {
@@ -619,6 +599,9 @@
                         });
 
                         $('#batch-parse').on('click', async function() {
+                            $('#parse-results').remove();
+                            $('.card-form.mt-3:has(#parse-header)').remove();
+                            
                             const checkedSongs = $('.song-checkbox:checked');
                             if (checkedSongs.length === 0) {
                                 alert('请先选择要解析的歌曲');
@@ -703,7 +686,7 @@
                                             解析失败: ${songId}
                                         </div>`);
                                 }
-                                await new Promise(resolve => setTimeout(resolve, 1000));
+                                await new Promise(resolve => setTimeout(resolve, 10));
                             }
 
                             $('#batch-download-all').on('click', async function() {
@@ -723,7 +706,7 @@
                                         } else {
                                             await handleMp3Download(blob, name, artist, cover);
                                         }
-                                        await new Promise(resolve => setTimeout(resolve, 1000));
+                                        await new Promise(resolve => setTimeout(resolve, 10));
                                     } catch (error) {
                                         console.error(`下载 ${name} 失败:`, error);
                                         handleDirectDownload(blob, name, artist, isHighQuality);
@@ -852,7 +835,6 @@
                     .then(response => response.blob())
                     .then(blob => {
                         if (isHighQuality) {
-                            // FLAC 文件直接下载
                             const downloadUrl = URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = downloadUrl;
