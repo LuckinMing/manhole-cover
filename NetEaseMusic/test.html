@@ -529,23 +529,20 @@
                 $('#playlist-info').empty();
             });
 
-            // 添加一个新的函数来提取歌单ID
             function extractPlaylistId(input) {
-                // 如果是完整URL
                 if (input.includes('playlist?id=')) {
                     const match = input.match(/playlist\?id=(\d+)/);
                     if (match && match[1]) {
                         return match[1];
                     }
                 }
-                // 如果只是数字ID
+
                 if (/^\d+$/.test(input)) {
                     return input;
                 }
                 return '';
             }
 
-            // 修改点击事件处理函数
             $('#get-playlist-btn').on('click', function(event) {
                 event.preventDefault();
 
@@ -684,19 +681,16 @@
                                 return;
                             }
 
-                            // 显示加载提示
                             const loadingHtml = `
                                 <div class="card-form mt-3" id="parse-loading">
                                     <div class="text-center">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">加载中...</span>
                                         </div>
-                                        <p class="mt-2">正在解析选中的歌曲，请稍候...</p>
+                                        <p class="mt-2">正在解析选中的歌曲，给老子等着...</p>
                                     </div>
                                 </div>`;
                             $('#playlist-info').append(loadingHtml);
-
-                            // 清除之前的解析结果
                             $('#parse-results').remove();
                             $('.card-form.mt-3:has(#parse-header)').remove();
 
