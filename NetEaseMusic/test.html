@@ -122,6 +122,14 @@
             margin: 1rem 0;
         }
 
+        .text-tips {
+        color: #6c757d;
+        text-align: center;
+        margin-top: -15px;
+        margin-bottom: 15px;
+        font-size: 0.9em;
+        }
+
         .playlist-container {
             max-height: 60vh;
             overflow-y: auto;
@@ -178,16 +186,26 @@
 
         <div class="list">
             <div class="header">
-                <h1>获取歌单</h1>
-                <input type="text" id="playlist_id" class="form-control" placeholder="请输入歌单ID">
+                <h1>网易云聚合搜索</h1>
+                <p class="text-tips">歌单，单曲，ALL IN ONE</p>
+                <div class="api-switch mb-3">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="apiType" id="playlistApi" value="playlist" checked>
+                        <label class="form-check-label" for="playlistApi">歌单</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="apiType" id="searchApi" value="search">
+                        <label class="form-check-label" for="searchApi">搜索</label>
+                    </div>
+                </div>
+                <input type="text" id="input_field" class="form-control" placeholder="请输入歌单ID">
                 <div class="d-grid">
                     <button type="button" class="btn btn-primary" id="get-playlist-btn" style="padding: 0.2rem 0.1rem;">
                         GET
                     </button>
                 </div>
             </div>
-            <div id="playlist-info">
-            </div>
+            <div id="playlist-info"></div>
         </div>
 
         <div class="card-form">
@@ -409,31 +427,162 @@
             let playList = [];
             let isSequentialPlay = false;
             let isRandomPlay = false;
+            let currentPlayer = null;
 
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            async function playSongById(songId) {
+                const level = $('#level').val();
+                try {
+                    const response = await $.post('https://api.kxzjoker.cn/api/163_music', {
+                        url: songId,
+                        level: level,
+                        type: 'json'
+                    });
+
+                    if (response.status === 200) {
+                        const processedLyrics = response.tlyric ? 
+                            lrctran(response.lyric, response.tlyric) : response.lyric;
+
+                        if (currentPlayer) {
+                            currentPlayer.destroy();
+                        }
+
+                        if (!document.getElementById('aplayer')) {
+                            const aplayerDiv = document.createElement('div');
+                            aplayerDiv.id = 'aplayer';
+                            document.body.appendChild(aplayerDiv);
+                        }
+
+                        currentPlayer = new APlayer({
+                            container: document.getElementById('aplayer'),
+                            lrcType: 1,
+                            fixed: true,
+                            autoplay: true,
+                            audio: [{
+                                name: response.name,
+                                artist: response.ar_name,
+                                url: response.url,
+                                cover: response.pic,
+                                lrc: processedLyrics
+                            }]
+                        });
+
+                        $('#song_name').text(response.name);
+                        $('#song_pic').attr('src', response.pic);
+                        $('#artist_names').text(response.ar_name);
+                        $('#song_alname').text(response.al_name);
+                        $('#song_level').text(response.level);
+                        $('#song_size').text(response.size);
+                        $('#song_url').attr('href', response.url);
+                        $('#lyric').html(processedLyrics.replace(/\n/g, '<br>'));
+                        $('#song-info').removeClass('d-none');
+
+                        currentPlayer.on('ended', function() {
+                            console.log('歌曲播放结束，当前播放状态：', {
+                                isSequentialPlay,
+                                isRandomPlay,
+                                currentSongIndex,
+                                playListLength: playList.length
+                            });
+                            
+                            if (isSequentialPlay || isRandomPlay) {
+                                currentSongIndex = (currentSongIndex + 1) % playList.length;
+                                console.log('即将播放下一首：', currentSongIndex);
+                                playSongById(playList[currentSongIndex].id);
+                            }
+                        });
+
+                        console.log('播放状态：', {
+                            currentSong: response.name,
+                            playMode: isSequentialPlay ? '顺序播放' : (isRandomPlay ? '随机播放' : '单曲播放'),
+                            currentIndex: currentSongIndex,
+                            totalSongs: playList.length
+                        });
+                    }
+                } catch (error) {
+                    console.error('播放失败:', error);
+                    alert('播放失败，请稍后重试');
+                }
+            }
+
+            $('input[name="apiType"]').on('change', function() {
+                const apiType = $('input[name="apiType"]:checked').val();
+                const inputField = $('#input_field');
+                const submitBtn = $('#get-playlist-btn');
+                
+                if (apiType === 'playlist') {
+                    inputField.attr('placeholder', '请输入歌单ID');
+                    submitBtn.text('GET');
+                } else {
+                    inputField.attr('placeholder', '请输入内容');
+                    submitBtn.text('GET');
+                }
+                
+                inputField.val('');
+                $('#playlist-info').empty();
+            });
+
+            // 添加一个新的函数来提取歌单ID
+            function extractPlaylistId(input) {
+                // 如果是完整URL
+                if (input.includes('playlist?id=')) {
+                    const match = input.match(/playlist\?id=(\d+)/);
+                    if (match && match[1]) {
+                        return match[1];
+                    }
+                }
+                // 如果只是数字ID
+                if (/^\d+$/.test(input)) {
+                    return input;
+                }
+                return '';
+            }
+
+            // 修改点击事件处理函数
             $('#get-playlist-btn').on('click', function(event) {
                 event.preventDefault();
 
-                const playlistId = $('#playlist_id').val();
-
-                if (!playlistId) {
-                    alert('请输入歌单ID');
+                const apiType = $('input[name="apiType"]:checked').val();
+                const inputValue = $('#input_field').val().trim();
+                
+                if (!inputValue) {
+                    alert(apiType === 'playlist' ? '请输入歌单ID' : '请输入内容');
                     return;
                 }
-
+                
                 $('#playlist-info').empty();
                 
-                const apiUrl = `https://apis.netstart.cn/music/playlist/track/all?id=${playlistId}`;
+                let apiUrl;
+                if (apiType === 'playlist') {
+                    const playlistId = extractPlaylistId(inputValue);
+                    if (!playlistId) {
+                        alert('请输入有效的歌单ID或链接');
+                        return;
+                    }
+                    apiUrl = `https://apis.netstart.cn/music/playlist/track/all?id=${playlistId}`;
+                } else {
+                    apiUrl = `https://apis.netstart.cn/music/cloudsearch?keywords=${encodeURIComponent(inputValue)}`;
+                }
 
                 $.get(apiUrl, function(data) {
-                    console.log('API return:', data);
                     if (data.code === 200) {
-                        const songs = data.songs || [];
+                        const songs = apiType === 'playlist' ? data.songs : data.result.songs;
                         playList = songs;
+                        
+                        let resultTitle = apiType === 'playlist' ? '歌单列表' : '搜索结果';
+                        
                         let playlistHtml = `
                             <div class="card-form mt-3">
                                 <div class="d-flex justify-content-between align-items-center mb-3" id="playlist-header">
                                     <div class="d-flex align-items-center">
-                                        <h1 class="mb-0 me-3">歌单列表 (${songs.length} 首歌曲)</h1>
+                                        <h1 class="mb-0 me-3">${resultTitle} (${songs.length} 首歌曲)</h1>
                                         <div class="btn-group">
                                             <button class="btn btn-sm btn-outline-primary" id="sequential-play">顺序播放</button>
                                             <button class="btn btn-sm btn-outline-primary" id="random-play">随机播放</button>
@@ -452,14 +601,21 @@
                         songs.forEach(song => {
                             playlistHtml += `
                                 <div class="song-item" style="background: rgba(255, 255, 255, 0.5); 
-                                                              margin: 0.5rem 0; 
-                                                              padding: 0.75rem; 
-                                                              border-radius: 0.75rem; 
-                                                              display: flex; 
-                                                              justify-content: space-between; 
-                                                              align-items: center">
+                                                                margin: 0.5rem 0; 
+                                                                padding: 0.75rem; 
+                                                                border-radius: 0.75rem; 
+                                                                display: flex; 
+                                                                justify-content: space-between; 
+                                                                align-items: center">
                                     <div class="d-flex align-items-center">
                                         <input type="checkbox" class="song-checkbox me-2" data-song-id="${song.id}">
+                                        <img src="${song.al.picUrl}?param=200y200" 
+                                             alt="${song.name}" 
+                                             style="width: 50px; 
+                                                    height: 50px; 
+                                                    border-radius: 8px; 
+                                                    margin-right: 15px;
+                                                    object-fit: cover;">
                                         <div>
                                             <strong>${song.name}</strong>
                                             <small class="text-muted"> - ${song.ar[0].name}</small>
@@ -477,110 +633,23 @@
                                 </div>
                             </div>`;
 
-                        if (songs.length === 0) {
-                            playlistHtml = '<p>未找到歌曲</p>';
-                        }
-
                         $('#playlist-info').html(playlistHtml);
 
-                        function initPlayer(audio) {
-                            if (window.ap) {
-                                window.ap.destroy();
-                            }
-                            
-                            window.ap = new APlayer({
-                                container: document.getElementById('aplayer'),
-                                lrcType: 1,
-                                fixed: true,
-                                audio: [audio]
-                            });
-
-                            window.ap.on('ended', function() {
-                                console.log('歌曲播放结束');
-                                if (isSequentialPlay) {
-                                    console.log('执行顺序播放');
-                                    if (currentSongIndex < playList.length - 1) {
-                                        currentSongIndex++;
-                                        playSongById(playList[currentSongIndex].id);
-                                    }
-                                } else if (isRandomPlay) {
-                                    console.log('执行随机播放');
-                                    const randomIndex = Math.floor(Math.random() * playList.length);
-                                    currentSongIndex = randomIndex;
-                                    playSongById(playList[randomIndex].id);
-                                }
-                            });
-                        }
-
-                        function playSongById(songId) {
-                            const level = $('#level').val();
-                            $.post('https://api.kxzjoker.cn/api/163_music', { 
-                                url: songId, 
-                                level: level, 
-                                type: 'json' 
-                            }, function(data) {
-                                if (data.status === 200) {
-                                    $('#song_name').text(data.name);
-                                    $('#song_pic').attr('src', data.pic);
-                                    $('#artist_names').text(data.ar_name);
-                                    $('#song_alname').text(data.al_name);
-                                    $('#song_level').text(data.level);
-                                    $('#song_size').text(data.size);
-                                    $('#song_url').attr('href', data.url);
-                                    
-                                    let processedLyrics = data.tlyric ? 
-                                        lrctran(data.lyric, data.tlyric) : data.lyric;
-                                    $('#lyric').html(processedLyrics.replace(/\n/g, '<br>'));
-
-                                    initPlayer({
-                                        name: data.name,
-                                        artist: data.ar_name,
-                                        url: data.url,
-                                        cover: data.pic,
-                                        lrc: processedLyrics
-                                    });
-
-                                    $('#song-info').removeClass('d-none');
-                                    window.ap.play();
-                                } else {
-                                    alert('解析失败：' + data.msg);
-                                }
-                            }, 'json');
-                        }
-
-                        function playNextSong() {
-                            if (currentSongIndex < playList.length - 1) {
-                                currentSongIndex++;
-                                playSongById(playList[currentSongIndex].id);
-                            }
-                        }
-
-                        function playRandomSong() {
-                            const randomIndex = Math.floor(Math.random() * playList.length);
-                            currentSongIndex = randomIndex;
-                            playSongById(playList[randomIndex].id);
-                        }
-
-                        $('.play-btn').on('click', function() {
-                            const songId = $(this).data('song-id');
-                            currentSongIndex = playList.findIndex(song => song.id === parseInt(songId));
-                            playSongById(songId);
-                        });
-
-                        $('#sequential-play').on('click', function() {
-                            isSequentialPlay = !isSequentialPlay;
+                        $('#sequential-play').off('click').on('click', function() {
+                            isSequentialPlay = true;
                             isRandomPlay = false;
-                            $(this).toggleClass('btn-outline-primary btn-primary');
-                            $('#random-play').removeClass('btn-primary').addClass('btn-outline-primary');
-                            console.log('顺序播放模式:', isSequentialPlay);
+                            $('#sequential-play').addClass('active');
+                            $('#random-play').removeClass('active');
+                            console.log('已切换到顺序播放模式');
                         });
 
-                        $('#random-play').on('click', function() {
-                            isRandomPlay = !isRandomPlay;
+                        $('#random-play').off('click').on('click', function() {
                             isSequentialPlay = false;
-                            $(this).toggleClass('btn-outline-primary btn-primary');
-                            $('#sequential-play').removeClass('btn-primary').addClass('btn-outline-primary');
-                            console.log('随机播放模式:', isRandomPlay);
+                            isRandomPlay = true;
+                            playList = shuffleArray([...playList]);
+                            $('#random-play').addClass('active');
+                            $('#sequential-play').removeClass('active');
+                            console.log('已切换到随机播放模式');
                         });
 
                         $('#playlist-header').on('click', function(e) {
@@ -598,168 +667,146 @@
                             }
                         });
 
-                        $('#batch-parse').on('click', async function() {
-                            $('#parse-results').remove();
-                            $('.card-form.mt-3:has(#parse-header)').remove();
-                            
-                            const checkedSongs = $('.song-checkbox:checked');
+                        $('#select-all-songs').on('change', function() {
+                            $('#playlist-content .song-checkbox').prop('checked', $(this).is(':checked'));
+                        });
+
+                        $('#playlist-content .play-btn').on('click', function() {
+                            const songId = $(this).data('song-id');
+                            currentSongIndex = playList.findIndex(song => song.id == songId);
+                            playSongById(songId);
+                        });
+
+                        $('#batch-parse').off('click').on('click', async function() {
+                            const checkedSongs = $('#playlist-content .song-checkbox:checked');
                             if (checkedSongs.length === 0) {
                                 alert('请先选择要解析的歌曲');
                                 return;
                             }
 
-                            const level = $('#level').val();
-                            const parseResults = [];
-                            const isHighQuality = ['lossless', 'hires', 'sky', 'jyeffect', 'jymaster'].includes(level);
+                            // 显示加载提示
+                            const loadingHtml = `
+                                <div class="card-form mt-3" id="parse-loading">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">加载中...</span>
+                                        </div>
+                                        <p class="mt-2">正在解析选中的歌曲，请稍候...</p>
+                                    </div>
+                                </div>`;
+                            $('#playlist-info').append(loadingHtml);
+
+                            // 清除之前的解析结果
+                            $('#parse-results').remove();
+                            $('.card-form.mt-3:has(#parse-header)').remove();
 
                             let resultHtml = `
                                 <div class="card-form mt-3">
-                                    <div class="d-flex justify-content-between align-items-center mb-3" id="parse-header" style="cursor: pointer;">
+                                    <div class="d-flex justify-content-between align-items-center mb-3" id="parse-header">
                                         <div class="d-flex align-items-center">
-                                            <h1 class="mb-0 me-3">解析结果</h1>
+                                            <h1 class="mb-0 me-3">结果 (${checkedSongs.length}首)</h1>
                                             <div class="btn-group">
                                                 <button class="btn btn-primary btn-sm" id="batch-download-all">批量下载全部</button>
                                             </div>
                                         </div>
-                                        <span class="toggle-icon">↓</span>
+                                        <span class="toggle-icon" style="cursor: pointer;">↓</span>
                                     </div>
-                                    <div class="playlist-container" id="parse-results" style="display: block;"></div>
+                                    <div class="playlist-container" id="parse-results"></div>
                                 </div>`;
-                            $('#playlist-info').append(resultHtml);
 
-                            $('#parse-header').on('click', function(e) {
-                                if ($(e.target).closest('.btn-group').length === 0) {
-                                    const content = $('#parse-results');
-                                    const icon = $(this).find('.toggle-icon');
-                                    
-                                    if (content.is(':visible')) {
-                                        content.slideUp();
-                                        icon.text('→');
-                                    } else {
-                                        content.slideDown();
-                                        icon.text('↓');
+                            try {
+                                const level = $('#level').val();
+                                const results = [];
+
+                                for (let i = 0; i < checkedSongs.length; i++) {
+                                    const songId = $(checkedSongs[i]).data('song-id');
+                                    try {
+                                        const response = await $.post('https://api.kxzjoker.cn/api/163_music', {
+                                            url: songId,
+                                            level: level,
+                                            type: 'json'
+                                        });
+
+                                        if (response.status === 200) {
+                                            results.push(response);
+                                        }
+                                    } catch (error) {
+                                        console.error(`解析歌曲 ${songId} 失败:`, error);
                                     }
                                 }
-                            });
 
-                            for (let i = 0; i < checkedSongs.length; i++) {
-                                const songId = $(checkedSongs[i]).data('song-id');
-                                try {
-                                    const response = await $.post('https://api.kxzjoker.cn/api/163_music', {
-                                        url: songId,
-                                        level: level,
-                                        type: 'json'
-                                    });
-                                    
-                                    if (response.status === 200) {
-                                        parseResults.push(response);
-                                        const resultItemHtml = `
-                                            <div class="song-item" style="background: rgba(255, 255, 255, 0.5); 
-                                                                          margin: 0.5rem 0; 
-                                                                          padding: 0.75rem; 
-                                                                          border-radius: 0.75rem; 
-                                                                          display: flex; 
-                                                                          justify-content: space-between; 
-                                                                          align-items: center">
+                                $('#parse-loading').remove();
+
+                                $('#playlist-info').append(resultHtml);
+
+                                results.forEach(response => {
+                                    const resultItemHtml = `
+                                        <div class="song-item" style="background: rgba(255, 255, 255, 0.5); 
+                                                                     margin: 0.5rem 0; 
+                                                                     padding: 0.75rem; 
+                                                                     border-radius: 0.75rem; 
+                                                                     display: flex; 
+                                                                     justify-content: space-between; 
+                                                                     align-items: center">
+                                            <div class="d-flex align-items-center">
+                                                <img src="${response.pic}" 
+                                                     alt="${response.name}" 
+                                                     style="width: 50px; 
+                                                            height: 50px; 
+                                                            border-radius: 8px; 
+                                                            margin-right: 15px;
+                                                            object-fit: cover;">
                                                 <div>
                                                     <strong>${response.name}</strong>
-                                                    <small class="text-muted"> - ${response.ar_name} (${response.level})</small>
+                                                    <small class="text-muted"> - ${response.ar_name}</small>
+                                                    <div><small class="text-muted">音质：${response.level}</small></div>
                                                 </div>
-                                                <div class="btn-group">
-                                                    <a href="${response.url}" 
-                                                       class="btn btn-primary btn-sm parse-download-btn" 
-                                                       data-name="${response.name}"
-                                                       data-artist="${response.ar_name}"
-                                                       data-cover="${response.pic}"
-                                                       data-high-quality="${isHighQuality}"
-                                                       style="border-radius: 0.75rem; padding: 0.5rem 1rem;">
-                                                        下载
-                                                    </a>
-                                                </div>
-                                            </div>`;
-                                        $('#parse-results').append(resultItemHtml);
-                                    }
-                                } catch (error) {
-                                    console.error(`解析歌曲 ${songId} 失败:`, error);
-                                    $('#parse-results').append(`
-                                        <div class="alert alert-danger">
-                                            解析失败: ${songId}
-                                        </div>`);
-                                }
-                                await new Promise(resolve => setTimeout(resolve, 10));
-                            }
+                                            </div>
+                                            <a href="${response.url}" 
+                                               class="btn btn-sm btn-outline-primary parse-download-btn" 
+                                               data-name="${response.name}"
+                                               data-artist="${response.ar_name}"
+                                               data-cover="${response.pic}"
+                                               data-high-quality="${['lossless', 'hires', 'sky', 'jyeffect', 'jymaster'].includes(level)}">
+                                                下载
+                                            </a>
+                                        </div>`;
+                                    $('#parse-results').append(resultItemHtml);
+                                });
 
-                            $('#batch-download-all').on('click', async function() {
-                                const downloadButtons = $('.parse-download-btn');
-                                for (let i = 0; i < downloadButtons.length; i++) {
-                                    const button = downloadButtons[i];
-                                    const url = $(button).attr('href');
-                                    const name = $(button).data('name');
-                                    const artist = $(button).data('artist');
-                                    const cover = $(button).data('cover');
-                                    const isHighQuality = $(button).data('high-quality') === true;
+                                $('#batch-download-all').off('click').on('click', async function() {
+                                    const downloadButtons = $('.parse-download-btn');
+                                    if (downloadButtons.length === 0) return;
 
-                                    try {
-                                        const blob = await fetch(url).then(res => res.blob());
-                                        if (isHighQuality) {
-                                            await handleFlacDownload(blob, name, artist);
-                                        } else {
-                                            await handleMp3Download(blob, name, artist, cover);
+                                    for (let i = 0; i < downloadButtons.length; i++) {
+                                        const button = downloadButtons[i];
+                                        try {
+                                            const url = $(button).attr('href');
+                                            const name = $(button).data('name');
+                                            const artist = $(button).data('artist');
+                                            const cover = $(button).data('cover');
+                                            const isHighQuality = $(button).data('high-quality');
+
+                                            const blob = await fetch(url).then(res => res.blob());
+                                            if (isHighQuality) {
+                                                await handleFlacDownload(blob, name, artist);
+                                            } else {
+                                                await handleMp3Download(blob, name, artist, cover);
+                                            }
+                                            await new Promise(resolve => setTimeout(resolve, 200));
+                                        } catch (error) {
+                                            console.error('下载失败:', error);
                                         }
-                                        await new Promise(resolve => setTimeout(resolve, 10));
-                                    } catch (error) {
-                                        console.error(`下载 ${name} 失败:`, error);
-                                        handleDirectDownload(blob, name, artist, isHighQuality);
                                     }
-                                }
-                            });
-
-                            $('.parse-download-btn').on('click', async function(e) {
-                                e.preventDefault();
-                                const url = $(this).attr('href');
-                                const name = $(this).data('name');
-                                const artist = $(this).data('artist');
-                                const cover = $(this).data('cover');
-                                const isHighQuality = $(this).data('high-quality') === true;
-
-                                try {
-                                    const blob = await fetch(url).then(res => res.blob());
-                                    if (isHighQuality) {
-                                        await handleFlacDownload(blob, name, artist);
-                                    } else {
-                                        await handleMp3Download(blob, name, artist, cover);
-                                    }
-                                } catch (error) {
-                                    console.error('下载失败:', error);
-                                    handleDirectDownload(blob, name, artist, isHighQuality);
-                                }
-                            });
-                        });
-
-                        $('#select-all-songs').on('change', function() {
-                            $('.song-checkbox').prop('checked', $(this).is(':checked'));
-                        });
-
-                        $('#parse-header').on('click', function(e) {
-                            if ($(e.target).closest('.btn-group').length === 0) {
-                                const content = $('#parse-results');
-                                const icon = $(this).find('.toggle-icon');
-                                
-                                if (content.is(':visible')) {
-                                    content.slideUp();
-                                    icon.text('→');
-                                } else {
-                                    content.slideDown();
-                                    icon.text('↓');
-                                }
+                                });
+                            } catch (error) {
+                                console.error('批量解析失败:', error);
+                                alert('批量解析失败，请稍后重试');
                             }
                         });
                     } else {
-                        alert('获取歌单失败：' + (data.msg || '未知错误'));
+                        alert(apiType === 'playlist' ? '获取歌单失败' : '搜索失败');
                     }
-                }, 'json').fail(function(jqXHR, textStatus, errorThrown) {
-                    console.error('请求失败:', textStatus, errorThrown);
-                    alert('请求失败，请检查网络连接');
                 });
             });
 
