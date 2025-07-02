@@ -684,37 +684,52 @@
                             const loadingHtml = `
                                 <div class="card-form mt-3" id="parse-loading">
                                     <div class="text-center">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">加载中...</span>
+                                        <div class="progress mb-3" style="height: 20px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                 role="progressbar" 
+                                                 style="width: 0%;" 
+                                                 aria-valuenow="0" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100"
+                                                 id="parse-progress">0%</div>
                                         </div>
-                                        <p class="mt-2">正在解析选中的歌曲，给老子等着...</p>
+                                        <p class="mt-2">
+                                            正在解析第 <span id="current-parse">0</span> / <span id="total-parse">0</span> 首
+                                        </p>
+                                        <div id="parse-status" class="mt-2 text-start">
+                                            <div style="max-height: 150px; overflow-y: auto;">
+                                                <small class="text-muted">解析状态：</small>
+                                                <div id="parse-log"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>`;
                             $('#playlist-info').append(loadingHtml);
                             $('#parse-results').remove();
                             $('.card-form.mt-3:has(#parse-header)').remove();
 
-                            let resultHtml = `
-                                <div class="card-form mt-3">
-                                    <div class="d-flex justify-content-between align-items-center mb-3" id="parse-header">
-                                        <div class="d-flex align-items-center">
-                                            <h1 class="mb-0 me-3">结果 (${checkedSongs.length}首)</h1>
-                                            <div class="btn-group">
-                                                <button class="btn btn-primary btn-sm" id="batch-download-all">批量下载全部</button>
-                                            </div>
-                                        </div>
-                                        <span class="toggle-icon" style="cursor: pointer;">↓</span>
-                                    </div>
-                                    <div class="playlist-container" id="parse-results"></div>
-                                </div>`;
-
                             try {
                                 const level = $('#level').val();
                                 const results = [];
-
-                                for (let i = 0; i < checkedSongs.length; i++) {
+                                const total = checkedSongs.length;
+                                
+                                $('#total-parse').text(total);
+                                
+                                for (let i = 0; i < total; i++) {
                                     const songId = $(checkedSongs[i]).data('song-id');
+                                    const songName = $(checkedSongs[i]).closest('.song-item').find('strong').text();
+                                    
+                                    $('#current-parse').text(i + 1);
+                                    const progress = Math.round(((i + 1) / total) * 100);
+                                    $('#parse-progress').css('width', `${progress}%`).text(`${progress}%`);
+                                    
                                     try {
+                                        $('#parse-log').prepend(`
+                                            <div class="text-primary">
+                                                <small>⏳ 正在解析: ${songName}</small>
+                                            </div>
+                                        `);
+                                        
                                         const response = await $.post('https://api.kxzjoker.cn/api/163_music', {
                                             url: songId,
                                             level: level,
@@ -723,78 +738,161 @@
 
                                         if (response.status === 200) {
                                             results.push(response);
+                                            $('#parse-log').prepend(`
+                                                <div class="text-success">
+                                                    <small>✅ 解析成功: ${songName}</small>
+                                                </div>
+                                            `);
+                                        } else {
+                                            $('#parse-log').prepend(`
+                                                <div class="text-danger">
+                                                    <small>❌ 解析失败: ${songName}</small>
+                                                </div>
+                                            `);
                                         }
                                     } catch (error) {
                                         console.error(`解析歌曲 ${songId} 失败:`, error);
+                                        $('#parse-log').prepend(`
+                                            <div class="text-danger">
+                                                <small>❌ 解析失败: ${songName} (${error.message})</small>
+                                            </div>
+                                        `);
                                     }
+                                    await new Promise(resolve => setTimeout(resolve, 10));
                                 }
 
-                                $('#parse-loading').remove();
-
-                                $('#playlist-info').append(resultHtml);
-
-                                results.forEach(response => {
-                                    const resultItemHtml = `
-                                        <div class="song-item" style="background: rgba(255, 255, 255, 0.5); 
-                                                                     margin: 0.5rem 0; 
-                                                                     padding: 0.75rem; 
-                                                                     border-radius: 0.75rem; 
-                                                                     display: flex; 
-                                                                     justify-content: space-between; 
-                                                                     align-items: center">
-                                            <div class="d-flex align-items-center">
-                                                <img src="${response.pic}" 
-                                                     alt="${response.name}" 
-                                                     style="width: 50px; 
-                                                            height: 50px; 
-                                                            border-radius: 8px; 
-                                                            margin-right: 15px;
-                                                            object-fit: cover;">
-                                                <div>
-                                                    <strong>${response.name}</strong>
-                                                    <small class="text-muted"> - ${response.ar_name}</small>
-                                                    <div><small class="text-muted">音质：${response.level}</small></div>
+                                setTimeout(() => {
+                                    $('#parse-loading').remove();
+                                    let resultHtml = `
+                                        <div class="card-form mt-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-3" id="parse-header">
+                                                <div class="d-flex align-items-center">
+                                                    <h1 class="mb-0 me-3">解析结果 (${results.length}首)</h1>
+                                                    <button class="btn btn-primary btn-sm" id="batch-download-all">批量下载全部</button>
                                                 </div>
+                                                <span class="toggle-icon" style="cursor: pointer;">↓</span>
                                             </div>
-                                            <a href="${response.url}" 
-                                               class="btn btn-sm btn-outline-primary parse-download-btn" 
-                                               data-name="${response.name}"
-                                               data-artist="${response.ar_name}"
-                                               data-cover="${response.pic}"
-                                               data-high-quality="${['lossless', 'hires', 'sky', 'jyeffect', 'jymaster'].includes(level)}">
-                                                下载
-                                            </a>
+                                            <div class="playlist-container" id="parse-results">`;
+
+                                    results.forEach(song => {
+                                        resultHtml += `
+                                            <div class="song-item" style="background: rgba(255, 255, 255, 0.5); 
+                                                                        margin: 0.5rem 0; 
+                                                                        padding: 0.75rem; 
+                                                                        border-radius: 0.75rem; 
+                                                                        display: flex; 
+                                                                        justify-content: space-between; 
+                                                                        align-items: center">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="${song.pic}" alt="${song.name}" 
+                                                         style="width: 50px; height: 50px; border-radius: 8px; margin-right: 15px;">
+                                                    <div>
+                                                        <strong>${song.name}</strong>
+                                                        <small class="text-muted"> - ${song.ar_name}</small>
+                                                        <div>
+                                                            <small class="text-muted">音质：${song.level} | 大小：${song.size}</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <a href="${song.url}" 
+                                                   class="btn btn-sm btn-outline-primary parse-download-btn"
+                                                   data-name="${song.name}"
+                                                   data-artist="${song.ar_name}"
+                                                   data-cover="${song.pic}"
+                                                   data-level="${song.level}">
+                                                    下载
+                                                </a>
+                                            </div>`;
+                                    });
+
+                                    resultHtml += `
+                                            </div>
                                         </div>`;
-                                    $('#parse-results').append(resultItemHtml);
-                                });
 
-                                $('#batch-download-all').off('click').on('click', async function() {
-                                    const downloadButtons = $('.parse-download-btn');
-                                    if (downloadButtons.length === 0) return;
+                                    $('#playlist-info').append(resultHtml);
 
-                                    for (let i = 0; i < downloadButtons.length; i++) {
-                                        const button = downloadButtons[i];
+                                    $('#parse-header').on('click', function(e) {
+                                        if (!$(e.target).closest('.btn-group').length && !$(e.target).hasClass('btn')) {
+                                            const content = $('#parse-results');
+                                            const icon = $(this).find('.toggle-icon');
+                                            
+                                            if (content.is(':visible')) {
+                                                content.slideUp();
+                                                icon.text('→');
+                                            } else {
+                                                content.slideDown();
+                                                icon.text('↓');
+                                            }
+                                        }
+                                    });
+
+                                    $('.parse-download-btn').on('click', async function(e) {
+                                        e.preventDefault();
+                                        const url = $(this).attr('href');
+                                        const name = $(this).data('name');
+                                        const artist = $(this).data('artist');
+                                        const cover = $(this).data('cover');
+                                        const level = $(this).data('level');
+                                        const isHighQuality = ['lossless', 'hires', 'sky', 'jyeffect', 'jymaster'].includes(level);
+
                                         try {
-                                            const url = $(button).attr('href');
-                                            const name = $(button).data('name');
-                                            const artist = $(button).data('artist');
-                                            const cover = $(button).data('cover');
-                                            const isHighQuality = $(button).data('high-quality');
-
                                             const blob = await fetch(url).then(res => res.blob());
                                             if (isHighQuality) {
                                                 await handleFlacDownload(blob, name, artist);
                                             } else {
                                                 await handleMp3Download(blob, name, artist, cover);
                                             }
-                                            await new Promise(resolve => setTimeout(resolve, 200));
                                         } catch (error) {
                                             console.error('下载失败:', error);
+                                            handleDirectDownload(blob, name, artist, isHighQuality);
                                         }
-                                    }
-                                });
+                                    });
+
+                                    $('#batch-download-all').on('click', async function() {
+                                        const buttons = $('.parse-download-btn');
+                                        if (buttons.length === 0) return;
+
+                                        let completedDownloads = 0;
+                                        const totalDownloads = buttons.length;
+
+                                        for (let i = 0; i < buttons.length; i++) {
+                                            const button = $(buttons[i]);
+                                            try {
+                                                const url = button.attr('href');
+                                                const name = button.data('name');
+                                                const artist = button.data('artist');
+                                                const cover = button.data('cover');
+                                                const level = button.data('level');
+                                                const isHighQuality = ['lossless', 'hires', 'sky', 'jyeffect', 'jymaster'].includes(level);
+
+                                                button.text('下载中...').prop('disabled', true);
+
+                                                const blob = await fetch(url).then(res => res.blob());
+                                                if (isHighQuality) {
+                                                    await handleFlacDownload(blob, name, artist);
+                                                } else {
+                                                    await handleMp3Download(blob, name, artist, cover);
+                                                }
+
+                                                completedDownloads++;
+                                                button.text('已下载').removeClass('btn-outline-primary').addClass('btn-success');
+                                            } catch (error) {
+                                                console.error('下载失败:', error);
+                                                button.text('下载失败').removeClass('btn-outline-primary').addClass('btn-danger');
+                                            }
+
+                                            await new Promise(resolve => setTimeout(resolve, 20));
+                                        }
+                                    });
+                                }, 1000);
+
                             } catch (error) {
                                 console.error('批量解析失败:', error);
+                                $('#parse-log').prepend(`
+                                    <div class="text-danger">
+                                        <small>❌ 批量解析失败: ${error.message}</small>
+                                    </div>
+                                `);
                                 alert('批量解析失败，请稍后重试');
                             }
                         });
