@@ -832,8 +832,9 @@
                                         const name = $(this).data('name');
                                         const artist = $(this).data('artist');
                                         const cover = $(this).data('cover');
-                                        const level = $(this).data('level');
-                                        const isHighQuality = ['lossless', 'hires', 'sky', 'jyeffect', 'jymaster'].includes(level);
+                                        const level = $(this).closest('.song-item').find('.text-muted:contains("音质：")').text().split('：')[1].split('|')[0].trim();
+                                        
+                                        const isHighQuality = ['无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
 
                                         try {
                                             const blob = await fetch(url).then(res => res.blob());
@@ -863,7 +864,7 @@
                                                 const artist = button.data('artist');
                                                 const cover = button.data('cover');
                                                 const level = button.data('level');
-                                                const isHighQuality = ['lossless', 'hires', 'sky', 'jyeffect', 'jymaster'].includes(level);
+                                                const isHighQuality = ['无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
 
                                                 button.text('下载中...').prop('disabled', true);
 
@@ -967,57 +968,32 @@
                 const name = $('#song_name').text();
                 const artist = $('#artist_names').text();
                 const cover = $('#song_pic').attr('src');
-                const level = $('#level').val();
-                const isHighQuality = ['lossless', 'hires', 'sky', 'jyeffect', 'jymaster'].includes(level);
+                const level = $('#song_level').text();
+
+                const isHighQuality = ['无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
 
                 fetch(url)
-                    .then(response => response.blob())
-                    .then(blob => {
-                        if (isHighQuality) {
-                            const downloadUrl = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = downloadUrl;
-                            a.download = `${name} - ${artist}.flac`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(downloadUrl);
-                        } else {
-                            const reader = new FileReader();
-                            reader.onload = function() {
-                                const writer = new ID3Writer(reader.result);
-                                writer.setFrame('TIT2', name)
-                                     .setFrame('TPE1', [artist]);
-
-                                getImageBlob(cover)
-                                    .then(imageData => {
-                                        try {
-                                            writer.setFrame('APIC', {
-                                                type: 3,
-                                                data: imageData,
-                                                description: 'cover',
-                                                mimeType: 'image/jpeg'
-                                            });
-
-                                            writer.addTag();
-                                            const taggedBlob = writer.getBlob();
-                                            const downloadUrl = URL.createObjectURL(taggedBlob);
-                                            
-                                            const a = document.createElement('a');
-                                            a.href = downloadUrl;
-                                            a.download = `${name} - ${artist}.mp3`;
-                                            document.body.appendChild(a);
-                                            a.click();
-                                            document.body.removeChild(a);
-                                            URL.revokeObjectURL(downloadUrl);
-                                        } catch (error) {
-                                            console.error('添加标签失败:', error);
-                                            handleDirectDownload(blob, name, artist, isHighQuality);
-                                        }
-                                    });
-                            };
-                            reader.readAsArrayBuffer(blob);
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('网络请求失败');
                         }
+                        return response.blob();
+                    })
+                    .then(async blob => {
+                        try {
+                            if (isHighQuality) {
+                                await handleFlacDownload(blob, name, artist);
+                            } else {
+                                await handleMp3Download(blob, name, artist, cover);
+                            }
+                        } catch (error) {
+                            console.error('处理下载失败:', error);
+                            handleDirectDownload(blob, name, artist, isHighQuality);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('下载失败:', error);
+                        alert('下载失败，请稍后重试');
                     });
             });
 
