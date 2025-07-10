@@ -758,7 +758,7 @@
                                             </div>
                                         `);
                                     }
-                                    await new Promise(resolve => setTimeout(resolve, 10));
+                                    await new Promise(resolve => setTimeout(resolve, 1000));
                                 }
 
                                 setTimeout(() => {
@@ -882,7 +882,7 @@
                                                 button.text('下载失败').removeClass('btn-outline-primary').addClass('btn-danger');
                                             }
 
-                                            await new Promise(resolve => setTimeout(resolve, 20));
+                                            await new Promise(resolve => setTimeout(resolve, 1000));
                                         }
                                     });
                                 }, 1000);
