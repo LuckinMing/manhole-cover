@@ -266,6 +266,101 @@
 
     <script>
         $(document).ready(function() {
+            let currentSongIndex = -1;
+            let playList = [];
+            let isSequentialPlay = false;
+            let isRandomPlay = false;
+            let aplayerInstance = null;
+
+            function updateMediaSession(data) {
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: data.name,
+                        artist: data.artist,
+                        album: data.album,
+                        artwork: [
+                            { src: data.cover, sizes: '96x96', type: 'image/jpeg' },
+                            { src: data.cover, sizes: '128x128', type: 'image/jpeg' },
+                            { src: data.cover, sizes: '192x192', type: 'image/jpeg' },
+                            { src: data.cover, sizes: '256x256', type: 'image/jpeg' },
+                            { src: data.cover, sizes: '384x384', type: 'image/jpeg' },
+                            { src: data.cover, sizes: '512x512', type: 'image/jpeg' },
+                        ]
+                    });
+                }
+            }
+
+            function updatePositionState() {
+                if ('mediaSession' in navigator && aplayerInstance && aplayerInstance.audio.duration) {
+                    try {
+                         navigator.mediaSession.setPositionState({
+                            duration: aplayerInstance.audio.duration,
+                            playbackRate: aplayerInstance.audio.playbackRate,
+                            position: aplayerInstance.audio.currentTime
+                        });
+                    } catch (error) {
+                       // Position state is not finite. Can be ignored.
+                    }
+                }
+            }
+            
+            function playNextSong() {
+                if (!isSequentialPlay && !isRandomPlay) return;
+                if (playList.length === 0) return;
+
+                currentSongIndex = (currentSongIndex + 1) % playList.length;
+                const nextSong = playList[currentSongIndex];
+                playSongById(nextSong.id);
+            }
+
+            function playPreviousSong() {
+                if (!isSequentialPlay && !isRandomPlay) return;
+                if (playList.length === 0) return;
+
+                currentSongIndex = (currentSongIndex - 1 + playList.length) % playList.length;
+                const prevSong = playList[currentSongIndex];
+                playSongById(prevSong.id);
+            }
+            
+            function initializePlayer() {
+                if (aplayerInstance) {
+                    return;
+                }
+                
+                if (!$('#song-info').find('#aplayer').length) {
+                    $('#song-info').prepend('<div id="aplayer"></div>');
+                }
+
+                aplayerInstance = new APlayer({
+                    container: document.getElementById('aplayer'),
+                    lrcType: 1,
+                    fixed: true,
+                });
+
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.setActionHandler('play', () => { aplayerInstance.play(); });
+                    navigator.mediaSession.setActionHandler('pause', () => { aplayerInstance.pause(); });
+                    navigator.mediaSession.setActionHandler('nexttrack', playNextSong);
+                    navigator.mediaSession.setActionHandler('previoustrack', playPreviousSong);
+                    navigator.mediaSession.setActionHandler('seekto', (details) => {
+                        aplayerInstance.seek(details.seekTime);
+                    });
+                }
+
+                aplayerInstance.on('play', () => {
+                    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+                    const currentSongData = aplayerInstance.list.audios[aplayerInstance.list.index];
+                    if (currentSongData) {
+                       updateMediaSession(currentSongData);
+                    }
+                });
+                aplayerInstance.on('pause', () => {
+                    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+                });
+                aplayerInstance.on('ended', playNextSong);
+                aplayerInstance.on('timeupdate', updatePositionState);
+            }
+
             function lrctrim(lyrics) {
                 const lines = lyrics.split('\n');
                 const data = [];
@@ -423,12 +518,6 @@
                 });
             }
 
-            let currentSongIndex = -1;
-            let playList = [];
-            let isSequentialPlay = false;
-            let isRandomPlay = false;
-            let currentPlayer = null;
-
             function shuffleArray(array) {
                 for (let i = array.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -438,6 +527,8 @@
             }
 
             async function playSongById(songId) {
+                initializePlayer();
+
                 const level = $('#level').val();
                 try {
                     const response = await $.post('https://api.kxzjoker.cn/api/163_music', {
@@ -450,30 +541,7 @@
                         const processedLyrics = response.tlyric ? 
                             lrctran(response.lyric, response.tlyric) : response.lyric;
 
-                        if (currentPlayer) {
-                            currentPlayer.destroy();
-                        }
-
-                        if (!document.getElementById('aplayer')) {
-                            const aplayerDiv = document.createElement('div');
-                            aplayerDiv.id = 'aplayer';
-                            document.body.appendChild(aplayerDiv);
-                        }
-
-                        currentPlayer = new APlayer({
-                            container: document.getElementById('aplayer'),
-                            lrcType: 1,
-                            fixed: true,
-                            autoplay: true,
-                            audio: [{
-                                name: response.name,
-                                artist: response.ar_name,
-                                url: response.url,
-                                cover: response.pic,
-                                lrc: processedLyrics
-                            }]
-                        });
-
+                        // 1. Update main page UI
                         $('#song_name').text(response.name);
                         $('#song_pic').attr('src', response.pic);
                         $('#artist_names').text(response.ar_name);
@@ -483,28 +551,26 @@
                         $('#song_url').attr('href', response.url);
                         $('#lyric').html(processedLyrics.replace(/\n/g, '<br>'));
                         $('#song-info').removeClass('d-none');
+                        
+                        // 2. Prepare the new song object for APlayer
+                        const newSong = {
+                            name: response.name,
+                            artist: response.ar_name,
+                            album: response.al_name,
+                            url: response.url,
+                            cover: response.pic,
+                            lrc: processedLyrics
+                        };
 
-                        currentPlayer.on('ended', function() {
-                            console.log('歌曲播放结束，当前播放状态：', {
-                                isSequentialPlay,
-                                isRandomPlay,
-                                currentSongIndex,
-                                playListLength: playList.length
-                            });
-                            
-                            if (isSequentialPlay || isRandomPlay) {
-                                currentSongIndex = (currentSongIndex + 1) % playList.length;
-                                console.log('即将播放下一首：', currentSongIndex);
-                                playSongById(playList[currentSongIndex].id);
-                            }
-                        });
+                        // 3. Use APlayer's official API to replace the playlist
+                        aplayerInstance.list.clear();
+                        aplayerInstance.list.add(newSong);
 
-                        console.log('播放状态：', {
-                            currentSong: response.name,
-                            playMode: isSequentialPlay ? '顺序播放' : (isRandomPlay ? '随机播放' : '单曲播放'),
-                            currentIndex: currentSongIndex,
-                            totalSongs: playList.length
-                        });
+                        // 4. Explicitly command the player to play
+                        aplayerInstance.play();
+                        
+                    } else {
+                         alert('播放失败，请稍后重试');
                     }
                 } catch (error) {
                     console.error('播放失败:', error);
@@ -915,43 +981,13 @@
                     return;
                 }
 
-                $.post('https://api.kxzjoker.cn/api/163_music', { 
-                    url: validId, 
-                    level: level, 
-                    type:'json' 
-                }, function(data) {
-                    if (data.status === 200) {
-                        $('#song_name').text(data.name);
-                        $('#song_pic').attr('src', data.pic);
-                        $('#artist_names').text(data.ar_name);
-                        $('#song_alname').text(data.al_name);
-                        $('#song_level').text(data.level);
-                        $('#song_size').text(data.size);
-                        $('#song_url').attr('href', data.url);
-                        
-                        let processedLyrics = data.tlyric ? 
-                            lrctran(data.lyric, data.tlyric) : data.lyric;
-                        $('#lyric').html(processedLyrics.replace(/\n/g, '<br>'));
-
-                        // 初始化播放器
-                        new APlayer({
-                            container: document.getElementById('aplayer'),
-                            lrcType: 1,
-                            fixed: true,
-                            audio: [{
-                                name: data.name,
-                                artist: data.ar_name,
-                                url: data.url,
-                                cover: data.pic,
-                                lrc: processedLyrics
-                            }]
-                        });
-
-                        $('#song-info').removeClass('d-none');
-                    } else {
-                        alert('解析失败：' + data.msg);
-                    }
-                }, 'json');
+                playList = [];
+                currentSongIndex = -1;
+                isSequentialPlay = false;
+                isRandomPlay = false;
+                $('#sequential-play, #random-play').removeClass('active');
+                
+                playSongById(validId);
             });
 
             function getImageBlob(imageUrl) {
@@ -1003,12 +1039,11 @@
                 a.href = downloadUrl;
                 a.download = `${name} - ${artist}.${isHighQuality ? 'flac' : 'mp3'}`;
                 document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(downloadUrl);
-            }
-        });
-    </script>
-
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(downloadUrl);
+}
+});
+</script>
 </body>
 </html>
