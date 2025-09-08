@@ -10,9 +10,14 @@
     <link href="css/APlayer.min.css" rel="stylesheet">
     
     <style>
+        @font-face {
+            font-family: 'PingFang-SC';
+            src: url('../fonts/PingFang.ttf') format('truetype');
+        }/*孩子们内置苹方来了*/
+
         body {
             /* Use system font stack for better compatibility */
-            font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+            font-family: 'PingFang-SC', system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
             background: url("https://www.dmoe.cc/random.php?type=phone&sex=1") center/cover fixed no-repeat;
             min-height: 100vh;
             position: relative;
@@ -164,9 +169,45 @@
                 font-size: 0.9rem;
             }
         }
+
+        .top-bar {
+            background-color: rgba(51, 51, 51, 0.8);
+            color: #ffffff;
+            padding: 15px 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .top-bar span {
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .top-bar a {
+            color: #66CCFF;
+            text-decoration: none;
+            padding: 5px 15px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .top-bar a:hover {
+            background: rgba(102, 204, 255, 0.2);
+        }
     </style>
 </head>
 <body>
+    <div class="top-bar">
+        <span>Manhole-Cover</span>
+        <a href="../frontside/public/index.html">BACK</a>
+    </div>
     
     <div class="container">
         <div class="header">
