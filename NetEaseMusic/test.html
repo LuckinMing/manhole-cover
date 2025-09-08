@@ -406,7 +406,7 @@
                         const seconds = parseFloat(matches[2].replace('.', ':')) || 0;
                         const timestamp = minutes * 60000 + seconds * 1000;
 
-                        let text = line.replace(/\[\d{2}:\d{2}[\.:]?\d*\]/g, '').trim();
+                        let text = line.replace(/\\[\d{2}:\d{2}[\.:]?\d*]/g, '').trim();
                         text = text.replace(/\s\s+/g, ' '); 
 
                         data.push([timestamp, index, text]);
@@ -471,7 +471,7 @@
                 if (checkValidLink(link)) {
                     return link;
                 } else {
-                    var idRegex = /\b\d+\b/g;
+                    var idRegex = /\\d+\/g;
                     var ids = text.match(idRegex);
                     if (ids && ids.length > 0) {
                         return ids[0];
@@ -1078,7 +1078,7 @@
                                         const album = $(this).data('album') || '';
                                         const level = $(this).closest('.song-item').find('.text-muted:contains("音质：")').text().split('：')[1].split('|')[0].trim();
                                         
-                                        const isHighQuality = ['无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
+                                        const isHighQuality = ['SQ', '无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
 
                                         try {
                                             const blob = await fetch(url).then(res => res.blob());
@@ -1114,7 +1114,7 @@
                                                 const cover = button.data('cover');
                                                 const album = button.data('album') || '';
                                                 const level = button.data('level');
-                                                const isHighQuality = ['无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
+                                                const isHighQuality = ['SQ', '无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
 
                                                 button.text('下载中...').prop('disabled', true);
 
@@ -1190,7 +1190,7 @@
                 const album = $('#song_alname').text();
                 const level = $('#song_level').text();
 
-                const isHighQuality = ['无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
+                const isHighQuality = !['128K', '320K'].includes(level);
 
                 fetch(url)
                     .then(response => {
