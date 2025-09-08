@@ -1199,7 +1199,7 @@
                 // Get lyrics with line breaks
                 const lyrics = ($('#lyric').html() || '').replace(/<br\s*\/?>/gi, '\r\n');
 
-                const isHighQuality = !['128K', '320K'].includes(level);
+                const isHighQuality = ['lossless', 'hires', 'sky', 'jyeffect', 'jymaster', 'SQ', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
 
                 fetch(url)
                     .then(response => {
