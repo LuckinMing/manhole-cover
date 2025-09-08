@@ -3,22 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="../NetEaseMusic/icon.ico"/>
+    <link rel="icon" href="icon.ico"/>
     <title>网易云无损解析</title>
-    <link rel="stylesheet" href="../css/tbbg.css">
-    <link href="../NetEaseMusic/css/bootstrap.min.css" rel="stylesheet">
-    <link href="../NetEaseMusic/css/APlayer.min.css" rel="stylesheet">
-    <script src="../NetEaseMusic/js/browser-id3-writer.min.js"></script>
-    <script src="../NetEaseMusic/js/jsmediatags.min.js"></script>
+    
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/APlayer.min.css" rel="stylesheet">
+    
     <style>
-        @font-face {
-            font-family: 'PingFang-SC';
-            src: url('../fonts/PingFang.ttf') format('truetype');
-        }/*孩子们内置苹方来了*/
-        
         body {
-            font-family: 'PingFang-SC', Arial, sans-serif;
-            background: url("http://www.dmoe.cc/random.php?type=phone&sex=1") center/cover fixed no-repeat;
+            /* Use system font stack for better compatibility */
+            font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+            background: url("https://www.dmoe.cc/random.php?type=phone&sex=1") center/cover fixed no-repeat;
             min-height: 100vh;
             position: relative;
         }
@@ -172,17 +167,14 @@
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        <span>Manhole-Cover</span>
-        <a href="../frontside/public/index.html">BACK</a>
-    </div>
+    
     <div class="container">
         <div class="header">
             <h1>网易云解析</h1>
             <p class="text-muted">听我想听</p>
         </div>
         
-        <div id="poweredByLazyChara">Powered By LazyChara</div>
+        
 
         <div class="list">
             <div class="header">
@@ -261,8 +253,9 @@
         </div>
     </div>
 
-    <script src="../NetEaseMusic/js/jquery.min.js"></script>
-    <script src="../NetEaseMusic/js/APlayer.min.js"></script>
+    <script src="js/jquery.min.js"></script>
+    <script src="js/APlayer.min.js"></script>
+    <script src="js/browser-id3-writer.min.js"></script>
 
     <script>
         $(document).ready(function() {
@@ -493,29 +486,171 @@
                 });
             }
 
-            async function handleFlacDownload(blob, name, artist) {
-                const reader = new FileReader();
-                return new Promise((resolve, reject) => {
-                    reader.onload = function() {
-                        try {
-                            const downloadUrl = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = downloadUrl;
-                            a.download = `${name} - ${artist}.flac`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(downloadUrl);
-                            resolve();
-                        } catch (error) {
-                            console.error('FLAC处理失败:', error);
-                            handleDirectDownload(blob, name, artist, true);
-                            resolve();
-                        }
+            async function handleFlacDownload(blob, name, artist, coverUrl, album) {
+                // Write Vorbis Comment and embed cover (PICTURE) into FLAC metadata
+                const arrayBuffer = await blob.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+
+                // Validate FLAC magic
+                if (bytes.length < 4 || bytes[0] !== 0x66 || bytes[1] !== 0x4C || bytes[2] !== 0x61 || bytes[3] !== 0x43) {
+                    // Fallback to direct download if not a valid FLAC
+                    handleDirectDownload(blob, name, artist, true);
+                    return;
+                }
+
+                // Locate end of metadata blocks, and the last block header to clear its last-flag
+                let offset = 4; // after 'fLaC'
+                let lastBlockHeaderOffset = -1;
+                let lastBlockWasFound = false;
+                while (!lastBlockWasFound && offset + 4 <= bytes.length) {
+                    const headerOffset = offset;
+                    const header0 = bytes[headerOffset];
+                    const length = (bytes[headerOffset + 1] << 16) | (bytes[headerOffset + 2] << 8) | bytes[headerOffset + 3];
+                    lastBlockWasFound = (header0 & 0x80) !== 0;
+                    offset += 4 + length;
+                    if (lastBlockWasFound) {
+                        lastBlockHeaderOffset = headerOffset;
+                        break;
+                    }
+                }
+
+                if (lastBlockHeaderOffset < 0) {
+                    handleDirectDownload(blob, name, artist, true);
+                    return;
+                }
+
+                const endOfMetadataOffset = offset;
+
+                // Build Vorbis Comment block (type 4)
+                function u32le(n) {
+                    const dv = new DataView(new ArrayBuffer(4));
+                    dv.setUint32(0, n, true);
+                    return new Uint8Array(dv.buffer);
+                }
+                function u32be(n) {
+                    const dv = new DataView(new ArrayBuffer(4));
+                    dv.setUint32(0, n, false);
+                    return new Uint8Array(dv.buffer);
+                }
+                function encUtf8(str) {
+                    return new TextEncoder().encode(str);
+                }
+                function buildMetadataBlock(type, isLast, content) {
+                    const header = new Uint8Array(4);
+                    header[0] = (isLast ? 0x80 : 0x00) | (type & 0x7F);
+                    const len = content.length;
+                    header[1] = (len >>> 16) & 0xFF;
+                    header[2] = (len >>> 8) & 0xFF;
+                    header[3] = len & 0xFF;
+                    const out = new Uint8Array(4 + len);
+                    out.set(header, 0);
+                    out.set(content, 4);
+                    return out;
+                }
+
+                function createVorbisCommentBlock(tags) {
+                    const vendor = encUtf8('NetEaseMusic-Web');
+                    const vendorLen = u32le(vendor.length);
+                    const fields = [];
+                    const pushField = (key, value) => {
+                        if (typeof value !== 'string') return;
+                        const s = encUtf8(`${key}=${value}`);
+                        fields.push(u32le(s.length));
+                        fields.push(s);
                     };
-                    reader.onerror = reject;
-                    reader.readAsArrayBuffer(blob);
-                });
+                    pushField('TITLE', tags.TITLE || '');
+                    pushField('ARTIST', tags.ARTIST || '');
+                    if (tags.ALBUM) pushField('ALBUM', tags.ALBUM);
+
+                    const userCount = u32le(fields.length / 2);
+
+                    let totalLen = 4 + vendor.length + 4; // vendorLen + vendor + userCount
+                    fields.forEach(part => { totalLen += part.length; });
+
+                    const content = new Uint8Array(totalLen);
+                    let o = 0;
+                    content.set(vendorLen, o); o += 4;
+                    content.set(vendor, o); o += vendor.length;
+                    content.set(userCount, o); o += 4;
+                    for (let i = 0; i < fields.length; i += 2) {
+                        content.set(fields[i], o); o += 4;           // length (LE)
+                        content.set(fields[i + 1], o); o += fields[i + 1].length; // value
+                    }
+
+                    return buildMetadataBlock(4, false, content);
+                }
+
+                async function createPictureBlockFromUrl(url) {
+                    try {
+                        const resp = await fetch(url);
+                        const buf = await resp.arrayBuffer();
+                        const pic = new Uint8Array(buf);
+                        const mime = (resp.headers.get('content-type') || 'image/jpeg');
+                        const mimeBytes = encUtf8(mime);
+                        const descBytes = encUtf8('cover');
+
+                        // Build PICTURE content in BE
+                        const parts = [];
+                        parts.push(u32be(3)); // type: front cover
+                        parts.push(u32be(mimeBytes.length));
+                        parts.push(mimeBytes);
+                        parts.push(u32be(descBytes.length));
+                        parts.push(descBytes);
+                        parts.push(u32be(0)); // width
+                        parts.push(u32be(0)); // height
+                        parts.push(u32be(24)); // depth
+                        parts.push(u32be(0)); // colors
+                        parts.push(u32be(pic.length));
+                        parts.push(pic);
+
+                        let total = 0; parts.forEach(p => total += p.length);
+                        const content = new Uint8Array(total);
+                        let pOff = 0; for (const p of parts) { content.set(p, pOff); pOff += p.length; }
+
+                        return buildMetadataBlock(6, true, content);
+                    } catch (e) {
+                        return null;
+                    }
+                }
+
+                // Build new blocks
+                const vorbis = createVorbisCommentBlock({ TITLE: name, ARTIST: artist, ALBUM: album || '' });
+                const picture = coverUrl ? await createPictureBlockFromUrl(coverUrl) : null;
+
+                // Prepare new head: clear previous last-flag on original last metadata block
+                const headBefore = bytes.subarray(0, lastBlockHeaderOffset);
+                const origLastHeader0 = bytes[lastBlockHeaderOffset] & 0x7F; // clear bit 7
+                const headHeader = new Uint8Array([origLastHeader0]);
+                const headAfter = bytes.subarray(lastBlockHeaderOffset + 1, endOfMetadataOffset);
+
+                // If picture is available, make it last; otherwise mark Vorbis as last
+                const vorbisBlock = buildMetadataBlock(4, picture ? false : true, vorbis.subarray(4));
+                const blocks = picture ? [vorbisBlock, picture] : [vorbisBlock];
+
+                // Concatenate: corrected head + new blocks + audio frames
+                const audioFrames = bytes.subarray(endOfMetadataOffset);
+
+                let newSize = headBefore.length + headHeader.length + headAfter.length;
+                blocks.forEach(b => newSize += b.length);
+                newSize += audioFrames.length;
+
+                const out = new Uint8Array(newSize);
+                let w = 0;
+                out.set(headBefore, w); w += headBefore.length;
+                out.set(headHeader, w); w += headHeader.length;
+                out.set(headAfter, w); w += headAfter.length;
+                for (const b of blocks) { out.set(b, w); w += b.length; }
+                out.set(audioFrames, w); w += audioFrames.length;
+
+                const outBlob = new Blob([out], { type: 'audio/flac' });
+                const downloadUrl = URL.createObjectURL(outBlob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `${name} - ${artist}.flac`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(downloadUrl);
             }
 
             function shuffleArray(array) {
@@ -865,6 +1000,7 @@
                                                    data-name="${song.name}"
                                                    data-artist="${song.ar_name}"
                                                    data-cover="${song.pic}"
+                                                   data-album="${song.al_name || ''}"
                                                    data-level="${song.level}">
                                                     下载
                                                 </a>
@@ -898,6 +1034,7 @@
                                         const name = $(this).data('name');
                                         const artist = $(this).data('artist');
                                         const cover = $(this).data('cover');
+                                        const album = $(this).data('album') || '';
                                         const level = $(this).closest('.song-item').find('.text-muted:contains("音质：")').text().split('：')[1].split('|')[0].trim();
                                         
                                         const isHighQuality = ['无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
@@ -905,13 +1042,18 @@
                                         try {
                                             const blob = await fetch(url).then(res => res.blob());
                                             if (isHighQuality) {
-                                                await handleFlacDownload(blob, name, artist);
+                                                await handleFlacDownload(blob, name, artist, cover, album);
                                             } else {
                                                 await handleMp3Download(blob, name, artist, cover);
                                             }
                                         } catch (error) {
                                             console.error('下载失败:', error);
-                                            handleDirectDownload(blob, name, artist, isHighQuality);
+                                            try {
+                                                const fallbackBlob = await fetch(url).then(res => res.blob());
+                                                handleDirectDownload(fallbackBlob, name, artist, isHighQuality);
+                                            } catch (_) {
+                                                window.open(url, '_blank');
+                                            }
                                         }
                                     });
 
@@ -929,6 +1071,7 @@
                                                 const name = button.data('name');
                                                 const artist = button.data('artist');
                                                 const cover = button.data('cover');
+                                                const album = button.data('album') || '';
                                                 const level = button.data('level');
                                                 const isHighQuality = ['无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
 
@@ -936,7 +1079,7 @@
 
                                                 const blob = await fetch(url).then(res => res.blob());
                                                 if (isHighQuality) {
-                                                    await handleFlacDownload(blob, name, artist);
+                                                    await handleFlacDownload(blob, name, artist, cover, album);
                                                 } else {
                                                     await handleMp3Download(blob, name, artist, cover);
                                                 }
@@ -973,7 +1116,6 @@
                 event.preventDefault();
 
                 const songIds = $('#song_ids').val();
-                const level = $('#level').val();
                 const validId = extractAndCheckId(songIds);
 
                 if (!validId) {
@@ -1004,6 +1146,7 @@
                 const name = $('#song_name').text();
                 const artist = $('#artist_names').text();
                 const cover = $('#song_pic').attr('src');
+                const album = $('#song_alname').text();
                 const level = $('#song_level').text();
 
                 const isHighQuality = ['无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
@@ -1018,7 +1161,7 @@
                     .then(async blob => {
                         try {
                             if (isHighQuality) {
-                                await handleFlacDownload(blob, name, artist);
+                                await handleFlacDownload(blob, name, artist, cover, album);
                             } else {
                                 await handleMp3Download(blob, name, artist, cover);
                             }
@@ -1039,10 +1182,10 @@
                 a.href = downloadUrl;
                 a.download = `${name} - ${artist}.${isHighQuality ? 'flac' : 'mp3'}`;
                 document.body.appendChild(a);
-a.click();
-document.body.removeChild(a);
-URL.revokeObjectURL(downloadUrl);
-}
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(downloadUrl);
+            }
 });
 </script>
 </body>
