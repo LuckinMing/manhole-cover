@@ -480,52 +480,43 @@
                 }
             }
 
-            async function handleMp3Download(blob, name, artist, cover, lyrics) {
-                const reader = new FileReader();
-                return new Promise((resolve, reject) => {
-                    reader.onload = function() {
-                        try {
-                            const writer = new ID3Writer(reader.result);
-                            writer.setFrame('TIT2', name)
-                                 .setFrame('USLT', lyrics || '')
-                                 .setFrame('TPE1', [artist]);
+            async function handleMp3Download(blob, name, artist, coverUrl, lyrics) {
+                try {
+                    const songBuffer = await blob.arrayBuffer();
+                    const writer = new ID3Writer(songBuffer);
+                    writer.setFrame('TIT2', name)
+                          .setFrame('TPE1', [artist])
+                          .setFrame('USLT', {
+                              description: 'lyrics',
+                              lyrics: lyrics || ''
+                          });
 
-                            getImageBlob(cover)
-                                .then(imageData => {
-                                    writer.setFrame('APIC', {
-                                        type: 3,
-                                        data: imageData,
-                                        description: 'cover',
-                                        mimeType: 'image/jpeg'
-                                    });
+                    try {
+                        const imageBuffer = await getImageBlob(coverUrl);
+                        writer.setFrame('APIC', {
+                            type: 3,
+                            data: imageBuffer,
+                            description: 'cover'
+                        });
+                    } catch (imageError) {
+                        console.error('添加封面失败，将不带封面下载:', imageError);
+                    }
 
-                                    writer.addTag();
-                                    const taggedBlob = writer.getBlob();
-                                    const downloadUrl = URL.createObjectURL(taggedBlob);
-                                    
-                                    const a = document.createElement('a');
-                                    a.href = downloadUrl;
-                                    a.download = `${name} - ${artist}.mp3`;
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    document.body.removeChild(a);
-                                    URL.revokeObjectURL(downloadUrl);
-                                    resolve();
-                                })
-                                .catch(error => {
-                                    console.error('添加封面失败:', error);
-                                    handleDirectDownload(blob, name, artist, false, lyrics);
-                                    resolve();
-                                });
-                        } catch (error) {
-                            console.error('MP3处理失败:', error);
-                            handleDirectDownload(blob, name, artist, false, lyrics);
-                            resolve();
-                        }
-                    };
-                    reader.onerror = reject;
-                    reader.readAsArrayBuffer(blob);
-                });
+                    writer.addTag();
+                    const taggedBlob = writer.getBlob();
+                    const downloadUrl = URL.createObjectURL(taggedBlob);
+                    
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = `${name} - ${artist}.mp3`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(downloadUrl);
+                } catch (error) {
+                    console.error('MP3处理失败，将直接下载:', error);
+                    handleDirectDownload(blob, name, artist, false, lyrics);
+                }
             }
 
             async function handleFlacDownload(blob, name, artist, coverUrl, album, lyrics) {
@@ -1182,10 +1173,7 @@
 
             function getImageBlob(imageUrl) {
                 return fetch(imageUrl)
-                    .then(response => response.arrayBuffer())  
-                    .then(buffer => {
-                        return new Uint8Array(buffer);
-                    });
+                    .then(response => response.arrayBuffer());
             }
 
             $('#song_url').on('click', function(e) {
