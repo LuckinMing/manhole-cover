@@ -480,13 +480,14 @@
                 }
             }
 
-            async function handleMp3Download(blob, name, artist, cover) {
+            async function handleMp3Download(blob, name, artist, cover, lyrics) {
                 const reader = new FileReader();
                 return new Promise((resolve, reject) => {
                     reader.onload = function() {
                         try {
                             const writer = new ID3Writer(reader.result);
                             writer.setFrame('TIT2', name)
+                                 .setFrame('USLT', lyrics || '')
                                  .setFrame('TPE1', [artist]);
 
                             getImageBlob(cover)
@@ -513,12 +514,12 @@
                                 })
                                 .catch(error => {
                                     console.error('添加封面失败:', error);
-                                    handleDirectDownload(blob, name, artist, false);
+                                    handleDirectDownload(blob, name, artist, false, lyrics);
                                     resolve();
                                 });
                         } catch (error) {
                             console.error('MP3处理失败:', error);
-                            handleDirectDownload(blob, name, artist, false);
+                            handleDirectDownload(blob, name, artist, false, lyrics);
                             resolve();
                         }
                     };
@@ -527,7 +528,7 @@
                 });
             }
 
-            async function handleFlacDownload(blob, name, artist, coverUrl, album) {
+            async function handleFlacDownload(blob, name, artist, coverUrl, album, lyrics) {
                 // Write Vorbis Comment and embed cover (PICTURE) into FLAC metadata
                 const arrayBuffer = await blob.arrayBuffer();
                 const bytes = new Uint8Array(arrayBuffer);
@@ -535,7 +536,7 @@
                 // Validate FLAC magic
                 if (bytes.length < 4 || bytes[0] !== 0x66 || bytes[1] !== 0x4C || bytes[2] !== 0x61 || bytes[3] !== 0x43) {
                     // Fallback to direct download if not a valid FLAC
-                    handleDirectDownload(blob, name, artist, true);
+                    handleDirectDownload(blob, name, artist, true, lyrics);
                     return;
                 }
 
@@ -556,7 +557,7 @@
                 }
 
                 if (lastBlockHeaderOffset < 0) {
-                    handleDirectDownload(blob, name, artist, true);
+                    handleDirectDownload(blob, name, artist, true, lyrics);
                     return;
                 }
 
@@ -602,6 +603,7 @@
                     pushField('TITLE', tags.TITLE || '');
                     pushField('ARTIST', tags.ARTIST || '');
                     if (tags.ALBUM) pushField('ALBUM', tags.ALBUM);
+                    if (tags.LYRICS) pushField('LYRICS', tags.LYRICS);
 
                     const userCount = u32le(fields.length / 2);
 
@@ -655,7 +657,7 @@
                 }
 
                 // Build new blocks
-                const vorbis = createVorbisCommentBlock({ TITLE: name, ARTIST: artist, ALBUM: album || '' });
+                const vorbis = createVorbisCommentBlock({ TITLE: name, ARTIST: artist, ALBUM: album || '', LYRICS: lyrics || '' });
                 const picture = coverUrl ? await createPictureBlockFromUrl(coverUrl) : null;
 
                 // Prepare new head: clear previous last-flag on original last metadata block
@@ -1043,6 +1045,7 @@
                                                    data-cover="${song.pic}"
                                                    data-album="${song.al_name || ''}"
                                                    data-level="${song.level}">
+                                                   <input type="hidden" class="song-lyrics" value="${song.lyric || ''}">
                                                     下载
                                                 </a>
                                             </div>`;
@@ -1077,21 +1080,23 @@
                                         const cover = $(this).data('cover');
                                         const album = $(this).data('album') || '';
                                         const level = $(this).closest('.song-item').find('.text-muted:contains("音质：")').text().split('：')[1].split('|')[0].trim();
-                                        
+                                        // Replace LF with CRLF for metadata standards
+                                        const lyrics = ($(this).find('.song-lyrics').val() || '').replace(/\n/g, '\r\n');
+
                                         const isHighQuality = ['SQ', '无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
 
                                         try {
                                             const blob = await fetch(url).then(res => res.blob());
                                             if (isHighQuality) {
-                                                await handleFlacDownload(blob, name, artist, cover, album);
+                                                await handleFlacDownload(blob, name, artist, cover, album, lyrics);
                                             } else {
-                                                await handleMp3Download(blob, name, artist, cover);
+                                                await handleMp3Download(blob, name, artist, cover, lyrics);
                                             }
                                         } catch (error) {
                                             console.error('下载失败:', error);
                                             try {
                                                 const fallbackBlob = await fetch(url).then(res => res.blob());
-                                                handleDirectDownload(fallbackBlob, name, artist, isHighQuality);
+                                                handleDirectDownload(fallbackBlob, name, artist, isHighQuality, lyrics);
                                             } catch (_) {
                                                 window.open(url, '_blank');
                                             }
@@ -1114,15 +1119,17 @@
                                                 const cover = button.data('cover');
                                                 const album = button.data('album') || '';
                                                 const level = button.data('level');
+                                                // Replace LF with CRLF for metadata standards
+                                                const lyrics = (button.find('.song-lyrics').val() || '').replace(/\n/g, '\r\n');
                                                 const isHighQuality = ['SQ', '无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
 
                                                 button.text('下载中...').prop('disabled', true);
 
                                                 const blob = await fetch(url).then(res => res.blob());
                                                 if (isHighQuality) {
-                                                    await handleFlacDownload(blob, name, artist, cover, album);
+                                                    await handleFlacDownload(blob, name, artist, cover, album, lyrics);
                                                 } else {
-                                                    await handleMp3Download(blob, name, artist, cover);
+                                                    await handleMp3Download(blob, name, artist, cover, lyrics);
                                                 }
 
                                                 completedDownloads++;
@@ -1189,6 +1196,8 @@
                 const cover = $('#song_pic').attr('src');
                 const album = $('#song_alname').text();
                 const level = $('#song_level').text();
+                // Get lyrics with line breaks
+                const lyrics = ($('#lyric').html() || '').replace(/<br\s*\/?>/gi, '\r\n');
 
                 const isHighQuality = !['128K', '320K'].includes(level);
 
@@ -1202,13 +1211,13 @@
                     .then(async blob => {
                         try {
                             if (isHighQuality) {
-                                await handleFlacDownload(blob, name, artist, cover, album);
+                                await handleFlacDownload(blob, name, artist, cover, album, lyrics);
                             } else {
-                                await handleMp3Download(blob, name, artist, cover);
+                                await handleMp3Download(blob, name, artist, cover, lyrics);
                             }
                         } catch (error) {
                             console.error('处理下载失败:', error);
-                            handleDirectDownload(blob, name, artist, isHighQuality);
+                            handleDirectDownload(blob, name, artist, isHighQuality, lyrics);
                         }
                     })
                     .catch(error => {
@@ -1217,7 +1226,7 @@
                     });
             });
 
-            function handleDirectDownload(blob, name, artist, isHighQuality) {
+            function handleDirectDownload(blob, name, artist, isHighQuality, lyrics) { // lyrics param added for consistency
                 const downloadUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = downloadUrl;
