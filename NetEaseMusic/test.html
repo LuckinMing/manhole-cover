@@ -1074,7 +1074,7 @@
                                         // Replace LF with CRLF for metadata standards
                                         const lyrics = ($(this).find('.song-lyrics').val() || '').replace(/\n/g, '\r\n');
 
-                                        const isHighQuality = ['SQ', '无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
+                                        const isHighQuality = ['SQ', '无损音质', 'Hi-Res', 'Hires音质', '沉浸环绕声', '高清环绕声', '超清母带', '无损音质'].includes(level);
 
                                         try {
                                             const blob = await fetch(url).then(res => res.blob());
@@ -1111,8 +1111,8 @@
                                                 const album = button.data('album') || '';
                                                 const level = button.data('level');
                                                 // Replace LF with CRLF for metadata standards
-                                                const lyrics = (button.find('.song-lyrics').val() || '').replace(/\n/g, '\r\n');
-                                                const isHighQuality = ['SQ', '无损音质', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
+                                                const lyrics = (button.find('.song-lyrics').val() || '').replace(/\r\n/g, '\n').replace(/\n/g, '\r\n');
+                                                const isHighQuality = ['SQ', '无损音质', 'Hi-Res', 'Hires音质', '沉浸环绕声', '高清环绕声', '超清母带', '无损音质'].includes(level);
 
                                                 button.text('下载中...').prop('disabled', true);
 
@@ -1187,7 +1187,7 @@
                 // Get lyrics with line breaks
                 const lyrics = ($('#lyric').html() || '').replace(/<br\s*\/?>/gi, '\r\n');
 
-                const isHighQuality = ['lossless', 'hires', 'sky', 'jyeffect', 'jymaster', 'SQ', 'Hi-Res', '沉浸环绕声', '高清环绕声', '超清母带'].includes(level);
+                const isHighQuality = ['lossless', 'hires', 'sky', 'jyeffect', 'jymaster', 'SQ', 'Hi-Res', 'Hires音质', '沉浸环绕声', '高清环绕声', '超清母带', '无损音质'].includes(level);
 
                 fetch(url)
                     .then(response => {
