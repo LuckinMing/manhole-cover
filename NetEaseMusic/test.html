@@ -10,196 +10,301 @@
     <link href="css/APlayer.min.css" rel="stylesheet">
     
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+        :root {
+            /* MD3 Color Tokens (Blue Theme) */
+            --md-sys-color-primary: #0061a4;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #d1e4ff;
+            --md-sys-color-on-primary-container: #001d36;
+            --md-sys-color-secondary: #535f70;
+            --md-sys-color-secondary-container: #d7e3f7;
+            --md-sys-color-on-secondary-container: #101c2b;
+            --md-sys-color-tertiary: #6b5778;
+            --md-sys-color-tertiary-container: #f2daff;
+            --md-sys-color-on-tertiary-container: #251431;
+            --md-sys-color-error: #ba1a1a;
+            --md-sys-color-on-error: #ffffff;
+            --md-sys-color-background: #fdfcff;
+            --md-sys-color-on-background: #1a1c1e;
+            --md-sys-color-surface: #fdfcff;
+            --md-sys-color-on-surface: #1a1c1e;
+            --md-sys-color-surface-variant: #dfe2eb;
+            --md-sys-color-on-surface-variant: #43474e;
+            --md-sys-color-outline: #73777f;
+            
+            /* Elevation & Shape */
+            --md-sys-shape-corner-extra-large: 28px;
+            --md-sys-shape-corner-large: 16px;
+            --md-sys-shape-corner-medium: 12px;
+            --md-sys-shape-corner-small: 8px;
+            --md-sys-shape-corner-full: 9999px;
+            
+            --md-sys-elevation-1: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15);
+            --md-sys-elevation-2: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 2px 6px 2px rgba(0,0,0,0.15);
+        }
+
         @font-face {
             font-family: 'PingFang-SC';
             src: url('../fonts/PingFang.ttf') format('truetype');
         }/*孩子们内置苹方来了*/
 
         body {
-            /* Use system font stack for better compatibility */
-            font-family: 'PingFang-SC', system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+            font-family: 'Roboto', 'PingFang-SC', system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
             background: url("https://www.dmoe.cc/random.php?type=phone&sex=1") center/cover fixed no-repeat;
             min-height: 100vh;
-            position: relative;
+            color: var(--md-sys-color-on-background);
         }
-
-        :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
+        
+        /* Backdrop for better readability on random images */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.3); /* Tint */
+            backdrop-filter: blur(5px); /* Blur the background image slightly */
+            z-index: -1;
         }
 
         .container {
-            max-width: 800px;
-            padding: 5rem;
+            max-width: 840px;
+            padding: 6rem 1rem 2rem 1rem; /* Top padding for fixed header */
             position: relative;
             z-index: 1;
         }
 
+        /* MD3 Top App Bar style */
+        .top-bar {
+            background-color: rgba(253, 252, 255, 0.95); /* Surface color with opacity */
+            color: var(--md-sys-color-on-surface);
+            padding: 12px 24px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Subtle separator */
+            backdrop-filter: blur(10px);
+        }
+
+        .top-bar span {
+            font-weight: 500;
+            font-size: 1.375rem; /* 22px */
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .top-bar a {
+            color: var(--md-sys-color-primary);
+            text-decoration: none;
+            padding: 8px 24px;
+            border-radius: var(--md-sys-shape-corner-full);
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .top-bar a:hover {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* Cards */
+        .header, .card-form, .result-card, .list .header {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: var(--md-sys-shape-corner-extra-large);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05); /* Very subtle shadow */
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+        
         .header {
             text-align: center;
-            margin-bottom: 2.5rem;
-            padding: 2rem;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 2rem;
+            background: rgba(255, 255, 255, 0.8);
         }
 
         .header h1 {
-            color: var(--primary-color);
-            font-weight: 700;
-            font-size: 2.5rem;
-            letter-spacing: -0.025em;
-            background: rgba(255, 255, 255, 0.0);
+            color: var(--md-sys-color-on-surface);
+            font-weight: 400; /* MD3 Display/Headline are often lighter weight */
+            font-size: 2.25rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .text-muted {
+            color: var(--md-sys-color-on-surface-variant) !important;
         }
 
-        .card-form {
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            margin-bottom: 2rem;
+        /* Form Controls */
+        .form-label {
+            color: var(--md-sys-color-on-surface);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
         }
 
-        .form-control {
-            border: 2px solid #e0e6ed;
-            border-radius: 0.75rem;
-            padding: 0.75rem 1rem;
-            transition: all 0.3s ease;
+        .form-control, .form-select {
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: var(--md-sys-shape-corner-small); /* Outlined text field shape */
+            padding: 12px 16px;
+            background-color: transparent;
+            color: var(--md-sys-color-on-surface);
+            transition: all 0.2s ease;
         }
 
-        .form-control:focus {
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.25);
+        .form-control:focus, .form-select:focus {
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 0 2px var(--md-sys-color-primary-container); /* Focus ring */
+            background-color: #fff;
+        }
+
+        /* Buttons */
+        .btn {
+            border-radius: var(--md-sys-shape-corner-full);
+            padding: 10px 24px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
         }
 
         .btn-primary {
-            background: var(--secondary-color);
+            background-color: var(--md-sys-color-primary);
             border: none;
-            padding: 0.75rem 2rem;
-            border-radius: 0.75rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
+            color: var(--md-sys-color-on-primary);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
 
         .btn-primary:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
+            background-color: #004a7f; /* Darker tone */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transform: translateY(-1px);
+        }
+        
+        .btn-outline-primary {
+            color: var(--md-sys-color-primary);
+            border-color: var(--md-sys-color-outline);
+        }
+        
+        .btn-outline-primary:hover, .btn-outline-primary.active {
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            border-color: var(--md-sys-color-primary-container);
+        }
+        
+        .btn-outline-success {
+             color: #2e7d32;
+             border-color: #757780;
+        }
+        
+        .btn-outline-success:hover {
+            background-color: #d7f8d9;
+            border-color: transparent;
         }
 
-        .result-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-top: 2rem;
+        /* Radio Buttons / Checks */
+        .form-check-input:checked {
+            background-color: var(--md-sys-color-primary);
+            border-color: var(--md-sys-color-primary);
         }
 
+        /* Song Info & APlayer */
         .song-info img {
             width: 100%;
             max-width: 300px;
-            border-radius: 1rem;
+            border-radius: var(--md-sys-shape-corner-large);
             margin: 1rem 0;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--md-sys-elevation-1);
             cursor: pointer;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s cubic-bezier(0.2, 0.0, 0, 1.0);
         }
 
         .song-info img:hover {
-            transform: scale(1.03);
+            transform: scale(1.02);
+            box-shadow: var(--md-sys-elevation-2);
         }
 
         .aplayer {
-            border-radius: 1rem;
+            border-radius: var(--md-sys-shape-corner-medium) !important;
+            box-shadow: none !important;
+            border: 1px solid var(--md-sys-color-outline);
+            background: var(--md-sys-color-surface) !important;
             margin: 1.5rem 0;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .aplayer .aplayer-body {
+            background: transparent !important;
         }
 
         .lyric-box {
             max-height: 300px;
             overflow-y: auto;
             padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 0.75rem;
+            background: var(--md-sys-color-surface-variant);
+            border-radius: var(--md-sys-shape-corner-medium);
+            color: var(--md-sys-color-on-surface-variant);
             margin: 1rem 0;
+            border: none;
         }
 
         .text-tips {
-        color: #6c757d;
-        text-align: center;
-        margin-top: -15px;
-        margin-bottom: 15px;
-        font-size: 0.9em;
+            color: var(--md-sys-color-on-surface-variant);
+            text-align: center;
+            margin-top: -15px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
         }
 
         .playlist-container {
             max-height: 60vh;
             overflow-y: auto;
             overflow-x: hidden;
-            margin: 1rem 0;
+            margin-top: 1rem;
             padding-right: 10px;
         }
 
-        .playlist-container::-webkit-scrollbar {
+        /* Scrollbar */
+        ::-webkit-scrollbar {
             width: 8px;
+            height: 8px;
         }
-
-        .playlist-container::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--md-sys-color-outline);
             border-radius: 4px;
         }
-
-        .playlist-container::-webkit-scrollbar-thumb {
-            background: rgba(52, 152, 219, 0.5);
-            border-radius: 4px;
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--md-sys-color-on-surface-variant);
         }
 
-        .playlist-container::-webkit-scrollbar-thumb:hover {
-            background: rgba(52, 152, 219, 0.7);
+        /* Generated Song Items Override */
+        .song-item {
+            background-color: var(--md-sys-color-surface) !important;
+            border: 1px solid var(--md-sys-color-surface-variant);
+            border-radius: var(--md-sys-shape-corner-medium) !important;
+            margin-bottom: 8px !important;
+            padding: 12px !important;
+            transition: background-color 0.2s;
+        }
+        
+        .song-item:hover {
+            background-color: var(--md-sys-color-secondary-container) !important;
         }
 
         @media (max-width: 768px) {
             .container {
-                padding: 1rem;
+                padding: 5rem 1rem 1rem 1rem;
             }
             
             .header h1 {
-                font-size: 2rem;
+                font-size: 1.75rem;
             }
-            
-            .form-control {
-                font-size: 0.9rem;
-            }
-        }
-
-        .top-bar {
-            background-color: rgba(51, 51, 51, 0.8);
-            color: #ffffff;
-            padding: 15px 20px;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-sizing: border-box;
-        }
-
-        .top-bar span {
-            font-weight: bold;
-            font-size: 1.2em;
-        }
-
-        .top-bar a {
-            color: #66CCFF;
-            text-decoration: none;
-            padding: 5px 15px;
-            border-radius: 15px;
-            transition: all 0.3s ease;
-        }
-
-        .top-bar a:hover {
-            background: rgba(102, 204, 255, 0.2);
         }
     </style>
 </head>
