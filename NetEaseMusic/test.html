@@ -13,36 +13,45 @@
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
         :root {
-            /* MD3 Color Tokens (Blue Theme) */
-            --md-sys-color-primary: #0061a4;
+            /* MD3 Design Tokens - Blue Theme */
+            --md-sys-color-primary: #005ac1;
             --md-sys-color-on-primary: #ffffff;
-            --md-sys-color-primary-container: #d1e4ff;
-            --md-sys-color-on-primary-container: #001d36;
-            --md-sys-color-secondary: #535f70;
-            --md-sys-color-secondary-container: #d7e3f7;
-            --md-sys-color-on-secondary-container: #101c2b;
-            --md-sys-color-tertiary: #6b5778;
-            --md-sys-color-tertiary-container: #f2daff;
-            --md-sys-color-on-tertiary-container: #251431;
+            --md-sys-color-primary-container: #d8e2ff;
+            --md-sys-color-on-primary-container: #001a41;
+            --md-sys-color-secondary: #575e71;
+            --md-sys-color-on-secondary: #ffffff;
+            --md-sys-color-secondary-container: #dbe2f9;
+            --md-sys-color-on-secondary-container: #141b2c;
+            --md-sys-color-tertiary: #715573;
+            --md-sys-color-on-tertiary: #ffffff;
+            --md-sys-color-tertiary-container: #fbd7fc;
+            --md-sys-color-on-tertiary-container: #29132d;
             --md-sys-color-error: #ba1a1a;
             --md-sys-color-on-error: #ffffff;
-            --md-sys-color-background: #fdfcff;
-            --md-sys-color-on-background: #1a1c1e;
-            --md-sys-color-surface: #fdfcff;
-            --md-sys-color-on-surface: #1a1c1e;
-            --md-sys-color-surface-variant: #dfe2eb;
-            --md-sys-color-on-surface-variant: #43474e;
-            --md-sys-color-outline: #73777f;
+            --md-sys-color-background: #fefbff;
+            --md-sys-color-on-background: #1b1b1f;
+            --md-sys-color-surface: #fefbff;
+            --md-sys-color-on-surface: #1b1b1f;
+            --md-sys-color-surface-variant: #e1e2ec;
+            --md-sys-color-on-surface-variant: #44474f;
+            --md-sys-color-outline: #74777f;
+            --md-sys-color-outline-variant: #c4c6d0;
+            
+            /* Surface Containers */
+            --md-sys-color-surface-container-low: #f7f2fa;
+            --md-sys-color-surface-container: #f3edf7;
+            --md-sys-color-surface-container-high: #ece6f0;
             
             /* Elevation & Shape */
             --md-sys-shape-corner-extra-large: 28px;
             --md-sys-shape-corner-large: 16px;
             --md-sys-shape-corner-medium: 12px;
-            --md-sys-shape-corner-small: 8px;
+            --md-sys-shape-corner-small: 4px;
             --md-sys-shape-corner-full: 9999px;
             
-            --md-sys-elevation-1: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15);
-            --md-sys-elevation-2: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 2px 6px 2px rgba(0,0,0,0.15);
+            --md-sys-elevation-1: 0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.3);
+            --md-sys-elevation-2: 0px 2px 6px 2px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.3);
+            --md-sys-elevation-3: 0px 1px 3px 0px rgba(0, 0, 0, 0.3), 0px 4px 8px 3px rgba(0, 0, 0, 0.15);
         }
 
         @font-face {
@@ -55,6 +64,7 @@
             background: url("https://www.dmoe.cc/random.php?type=phone&sex=1") center/cover fixed no-repeat;
             min-height: 100vh;
             color: var(--md-sys-color-on-background);
+            margin: 0;
         }
         
         /* Backdrop for better readability on random images */
@@ -62,23 +72,24 @@
             content: "";
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(255, 255, 255, 0.3); /* Tint */
-            backdrop-filter: blur(5px); /* Blur the background image slightly */
+            background: var(--md-sys-color-surface);
+            opacity: 0.85; /* Stronger tint for M3 feel */
             z-index: -1;
         }
 
         .container {
             max-width: 840px;
-            padding: 6rem 1rem 2rem 1rem; /* Top padding for fixed header */
+            padding: 80px 16px 24px 16px; /* Top padding for fixed header */
             position: relative;
             z-index: 1;
         }
 
         /* MD3 Top App Bar style */
         .top-bar {
-            background-color: rgba(253, 252, 255, 0.95); /* Surface color with opacity */
+            background-color: var(--md-sys-color-surface);
             color: var(--md-sys-color-on-surface);
-            padding: 12px 24px;
+            height: 64px;
+            padding: 0 16px;
             position: fixed;
             top: 0;
             left: 0;
@@ -87,23 +98,24 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* Subtle separator */
-            backdrop-filter: blur(10px);
+            box-shadow: none; /* M3 default is flat until scrolled, but flat is fine */
         }
 
         .top-bar span {
-            font-weight: 500;
-            font-size: 1.375rem; /* 22px */
+            font-weight: 400;
+            font-size: 22px;
+            line-height: 28px;
             font-family: 'Roboto', sans-serif;
+            margin-left: 12px;
         }
 
         .top-bar a {
             color: var(--md-sys-color-primary);
             text-decoration: none;
-            padding: 8px 24px;
+            padding: 10px 24px;
             border-radius: var(--md-sys-shape-corner-full);
-            background-color: var(--md-sys-color-secondary-container);
-            color: var(--md-sys-color-on-secondary-container);
+            background-color: transparent;
+            color: var(--md-sys-color-primary);
             font-weight: 500;
             font-size: 0.875rem;
             transition: all 0.2s ease;
@@ -112,29 +124,31 @@
         .top-bar a:hover {
             background-color: var(--md-sys-color-primary-container);
             color: var(--md-sys-color-on-primary-container);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
         /* Cards */
         .header, .card-form, .result-card, .list .header {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: var(--md-sys-shape-corner-extra-large);
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05); /* Very subtle shadow */
-            border: 1px solid rgba(255,255,255,0.5);
+            background: var(--md-sys-color-surface-container-low);
+            border-radius: var(--md-sys-shape-corner-large); /* M3 Card radius */
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--md-sys-elevation-1);
+            border: none;
         }
         
         .header {
             text-align: center;
-            background: rgba(255, 255, 255, 0.8);
+            background: transparent;
+            box-shadow: none;
+            padding: 48px 0 24px 0;
         }
 
         .header h1 {
             color: var(--md-sys-color-on-surface);
             font-weight: 400; /* MD3 Display/Headline are often lighter weight */
-            font-size: 2.25rem;
-            margin-bottom: 0.5rem;
+            font-size: 36px;
+            line-height: 44px;
+            margin-bottom: 0;
         }
         
         .text-muted {
@@ -144,45 +158,57 @@
         /* Form Controls */
         .form-label {
             color: var(--md-sys-color-on-surface);
-            font-weight: 500;
-            margin-bottom: 0.5rem;
+            font-weight: 400;
+            font-size: 12px;
+            letter-spacing: 0.4px;
+            margin-bottom: 4px;
+            margin-left: 4px;
         }
 
         .form-control, .form-select {
             border: 1px solid var(--md-sys-color-outline);
             border-radius: var(--md-sys-shape-corner-small); /* Outlined text field shape */
-            padding: 12px 16px;
+            padding: 16px;
+            height: 56px; /* M3 standard height */
             background-color: transparent;
             color: var(--md-sys-color-on-surface);
             transition: all 0.2s ease;
+            font-size: 16px;
         }
 
         .form-control:focus, .form-select:focus {
             border-color: var(--md-sys-color-primary);
             box-shadow: 0 0 0 2px var(--md-sys-color-primary-container); /* Focus ring */
-            background-color: #fff;
+            background-color: transparent;
+            color: var(--md-sys-color-on-surface);
         }
 
         /* Buttons */
         .btn {
             border-radius: var(--md-sys-shape-corner-full);
-            padding: 10px 24px;
+            height: 40px;
+            padding: 0 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             font-weight: 500;
-            letter-spacing: 0.5px;
+            font-size: 14px;
+            letter-spacing: 0.1px;
             transition: all 0.2s ease;
+            text-transform: none; /* M3 buttons are sentence case */
         }
 
         .btn-primary {
             background-color: var(--md-sys-color-primary);
             border: none;
             color: var(--md-sys-color-on-primary);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: var(--md-sys-elevation-1);
         }
 
         .btn-primary:hover {
-            background-color: #004a7f; /* Darker tone */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            transform: translateY(-1px);
+            background-color: var(--md-sys-color-primary); /* State layer handles opacity usually, but here we keep simple */
+            box-shadow: var(--md-sys-elevation-2);
+            filter: brightness(0.9); /* Simple hover state */
         }
         
         .btn-outline-primary {
@@ -193,16 +219,17 @@
         .btn-outline-primary:hover, .btn-outline-primary.active {
             background-color: var(--md-sys-color-primary-container);
             color: var(--md-sys-color-on-primary-container);
-            border-color: var(--md-sys-color-primary-container);
+            border-color: transparent;
         }
         
         .btn-outline-success {
-             color: #2e7d32;
-             border-color: #757780;
+             color: var(--md-sys-color-tertiary);
+             border-color: var(--md-sys-color-outline);
         }
         
         .btn-outline-success:hover {
-            background-color: #d7f8d9;
+            background-color: var(--md-sys-color-tertiary-container);
+            color: var(--md-sys-color-on-tertiary-container);
             border-color: transparent;
         }
 
@@ -211,12 +238,16 @@
             background-color: var(--md-sys-color-primary);
             border-color: var(--md-sys-color-primary);
         }
+        
+        .form-check-label {
+            color: var(--md-sys-color-on-surface);
+        }
 
         /* Song Info & APlayer */
         .song-info img {
             width: 100%;
             max-width: 300px;
-            border-radius: var(--md-sys-shape-corner-large);
+            border-radius: var(--md-sys-shape-corner-medium);
             margin: 1rem 0;
             box-shadow: var(--md-sys-elevation-1);
             cursor: pointer;
@@ -231,8 +262,8 @@
         .aplayer {
             border-radius: var(--md-sys-shape-corner-medium) !important;
             box-shadow: none !important;
-            border: 1px solid var(--md-sys-color-outline);
-            background: var(--md-sys-color-surface) !important;
+            border: 1px solid var(--md-sys-color-outline-variant);
+            background: var(--md-sys-color-surface-container) !important;
             margin: 1.5rem 0;
         }
         
@@ -243,8 +274,8 @@
         .lyric-box {
             max-height: 300px;
             overflow-y: auto;
-            padding: 1rem;
-            background: var(--md-sys-color-surface-variant);
+            padding: 16px;
+            background: var(--md-sys-color-surface-container-high);
             border-radius: var(--md-sys-shape-corner-medium);
             color: var(--md-sys-color-on-surface-variant);
             margin: 1rem 0;
@@ -276,34 +307,44 @@
             background: transparent;
         }
         ::-webkit-scrollbar-thumb {
-            background: var(--md-sys-color-outline);
+            background: var(--md-sys-color-outline-variant);
             border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: var(--md-sys-color-on-surface-variant);
+            background: var(--md-sys-color-outline);
         }
 
         /* Generated Song Items Override */
         .song-item {
-            background-color: var(--md-sys-color-surface) !important;
-            border: 1px solid var(--md-sys-color-surface-variant);
-            border-radius: var(--md-sys-shape-corner-medium) !important;
+            background-color: var(--md-sys-color-surface-container) !important;
+            border: none !important;
+            border-radius: var(--md-sys-shape-corner-small) !important;
             margin-bottom: 8px !important;
-            padding: 12px !important;
+            padding: 8px 16px !important;
             transition: background-color 0.2s;
+            color: var(--md-sys-color-on-surface);
         }
         
         .song-item:hover {
-            background-color: var(--md-sys-color-secondary-container) !important;
+            background-color: var(--md-sys-color-surface-container-high) !important;
+        }
+        
+        .song-item strong {
+            font-weight: 500;
+            font-size: 16px;
+        }
+        
+        .song-item small {
+            color: var(--md-sys-color-on-surface-variant) !important;
         }
 
         @media (max-width: 768px) {
             .container {
-                padding: 5rem 1rem 1rem 1rem;
+                padding: 72px 16px 16px 16px;
             }
             
             .header h1 {
-                font-size: 1.75rem;
+                font-size: 28px;
             }
         }
     </style>
@@ -511,7 +552,7 @@
                         const seconds = parseFloat(matches[2].replace('.', ':')) || 0;
                         const timestamp = minutes * 60000 + seconds * 1000;
 
-                        let text = line.replace(/\\[\d{2}:\d{2}[\.:]?\d*]/g, '').trim();
+                        let text = line.replace(/\[\d{2}:\d{2}[\.:]?\d*]/g, '').trim();
                         text = text.replace(/\s\s+/g, ' '); 
 
                         data.push([timestamp, index, text]);
@@ -539,7 +580,7 @@
                     if (lyric[i][0] === tlyric[j][0]) {
                         tlyric[j][2] = tlyric[j][2].replace('/', '');
                         if (tlyric[j][2]) {
-                            lyric[i][2] += ` (翻译：${tlyric[j][2]})`;
+                            lyric[i][2] += ` [${tlyric[j][2]}]`;
                         }
                         j++;
                     }
